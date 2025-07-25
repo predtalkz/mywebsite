@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+  <title>Dtalkz - Your opinion matters</title>
+  <meta content="" name="description">
+  <meta content="" name="keywords">
+
+  <!-- Favicons -->
+  <link href="assets/img/dtalkz.png" rel="icon">
+  <link href="assets/img/dtalkz.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/style.css" rel="stylesheet">
+
+  <!-- =======================================================
+  * Template Name: Gp - v4.8.1
+  * Template URL: https://bootstrapmade.com/gp-free-multipurpose-html-bootstrap-template/
+  * Author: BootstrapMade.com
+  * License: https://bootstrapmade.com/license/
+  ======================================================== -->
+    <script>
+        function showConfirmation(event) {
+            event.preventDefault(); // Prevent actual form submission
+            document.getElementById("deleteForm").style.display = "none"; 
+            document.getElementById("confirmationMessage").style.display = "block"; 
+        }
+    </script>
+</head>
+<style>
+  .appicon{
+    width: 200px;
+    padding-inline: 2px;
+  }
+  .center{
+margin: 0 auto;
+}
+</style>
+<body>
+    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; flex-direction: column; text-align: center;">
+        <h2>Request to Delete Your Account</h2>
+        <p>Fill out the form below to request account deletion. Once submitted, our team will process your request.</p>
+
+        <form id="deleteForm" onsubmit="showConfirmation(event)" style="max-width: 500px; width: 100%;">
+            <label for="name">Full Name:</label><br>
+            <input type="text" id="name" name="name" required><br><br>
+
+            <label for="email">Registered Email:</label><br>
+            <input type="email" id="email" name="email" required><br><br>
+
+            <label for="reason">Reason for Deletion (Optional):</label><br>
+            <textarea id="reason" name="reason"></textarea><br><br>
+
+            <label>
+                <input type="checkbox" name="confirm" required>
+                I understand that this action is irreversible and will permanently delete my account and associated data.
+            </label><br><br>
+
+            <input type="submit" value="Submit Request">
+        </form>
+
+        <div id="confirmationMessage" style="display:none; margin-top: 20px;">
+            <h3>Your account deletion request has been submitted successfully!</h3>
+            <p>We will process your request within 30 days. If you have any questions, please contact support.</p>
+        </div>
+
+        <p><strong>Data Retention:</strong> Upon approval, your account and associated data will be permanently deleted within 30 days.</p>
+    </div>
+</body>
+
+</html>
