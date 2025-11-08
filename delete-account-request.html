@@ -35,10 +35,97 @@
   * License: https://bootstrapmade.com/license/
   ======================================================== -->
     <script>
-        function showConfirmation(event) {
+        // Function to submit delete account request
+        async function submitDeleteRequest(event) {
             event.preventDefault(); // Prevent actual form submission
-            document.getElementById("deleteForm").style.display = "none"; 
-            document.getElementById("confirmationMessage").style.display = "block"; 
+
+            // Get form values
+            const userName = document.getElementById('username').value.trim();
+            const phoneNumber = document.getElementById('mobile').value.trim();
+
+            // Validate form
+            if (!userName || !phoneNumber) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            // Show loading state
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+            
+            // Store button reference for later use
+            window.submitButtonRef = submitButton;
+            window.originalButtonText = originalButtonText;
+            
+            // Hide form and show loading message
+            document.getElementById("deleteForm").style.display = "none";
+            document.getElementById("loadingMessage").style.display = "block";
+            document.getElementById("errorMessage").style.display = "none";
+            document.getElementById("confirmationMessage").style.display = "none";
+
+            try {
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('userName', userName);
+                formData.append('phoneNumber', phoneNumber);
+
+                // Make API call through PHP proxy (secure server-side call)
+                const response = await fetch('forms/delete-account.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Parse response
+                const data = await response.json();
+
+                // Hide loading message
+                document.getElementById("loadingMessage").style.display = "none";
+
+                // Check if response is successful
+                if (data.success) {
+                    // Show success message
+                    document.getElementById("confirmationMessage").style.display = "block";
+                    document.getElementById("confirmationMessage").scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    // Handle error response
+                    throw new Error(data.message || 'An error occurred while processing your request.');
+                }
+            } catch (error) {
+                console.error('Error submitting request:', error);
+                // Show error message
+                document.getElementById("loadingMessage").style.display = "none";
+                document.getElementById("errorMessage").style.display = "block";
+                document.getElementById("errorMessage").innerHTML = `
+                    <div class="alert alert-danger" role="alert" style="background: #ed3c0d; color: #fff; padding: 20px; border-radius: 4px; border: none;">
+                        <h4 style="color: #fff; margin-bottom: 15px;">Request Failed</h4>
+                        <p style="margin-bottom: 10px; color: #fff;">
+                            ${error.message || 'An error occurred while submitting your request. Please try again later.'}
+                        </p>
+                        <p style="margin-bottom: 0; color: #fff; font-size: 14px;">
+                            If the problem persists, please contact support at <a href="mailto:dtalkzinfo@gmail.com" style="color: #fff; text-decoration: underline;">dtalkzinfo@gmail.com</a>.
+                        </p>
+                        <button onclick="location.reload()" class="btn mt-3" style="background: #fff; color: #ed3c0d; border: none; padding: 8px 20px; border-radius: 4px; font-weight: 600;">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+                document.getElementById("errorMessage").scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Show form again for retry
+                document.getElementById("deleteForm").style.display = "block";
+                // Reset button state
+                if (window.submitButtonRef) {
+                    window.submitButtonRef.disabled = false;
+                    window.submitButtonRef.innerHTML = window.originalButtonText;
+                }
+            } finally {
+                // Clean up references
+                if (document.getElementById("deleteForm").style.display === "none") {
+                    window.submitButtonRef = null;
+                    window.originalButtonText = null;
+                }
+            }
         }
     </script>
 </head>
@@ -50,37 +137,356 @@
   .center{
 margin: 0 auto;
 }
+  .form-control:focus {
+    border-color: #ffc451;
+    box-shadow: 0 0 0 0.2rem rgba(255, 196, 81, 0.25);
+    outline: 0;
+  }
+  .btn:hover {
+    background: #ffbb38 !important;
+    color: #151515 !important;
+  }
+  .spinner-border {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    vertical-align: text-bottom;
+    border: 0.25em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+  }
+  .spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.2em;
+  }
+  @keyframes spinner-border {
+    to { transform: rotate(360deg); }
+  }
+  .text-light {
+    color: #fff !important;
+  }
 </style>
 <body>
-    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; flex-direction: column; text-align: center;">
-        <h2>Request to Delete Your Account</h2>
-        <p>Fill out the form below to request account deletion. Once submitted, our team will process your request.</p>
 
-        <form id="deleteForm" onsubmit="showConfirmation(event)" style="max-width: 500px; width: 100%;">
-            <label for="name">Full Name:</label><br>
-            <input type="text" id="name" name="name" required><br><br>
+  <!-- ======= Header ======= -->
+  <header id="header" class="fixed-top ">
+    <div class="container d-flex align-items-center justify-content-lg-between">
 
-            <label for="email">Registered Email:</label><br>
-            <input type="email" id="email" name="email" required><br><br>
+      <!-- <h1 class="logo me-auto me-lg-0"><a href="index.html">Gp<span>.</span></a></h1> -->
+      <div class="logo me-auto me-lg-0">
+        <a href="index.html">
+          <!-- Gp<span>.</span> -->
+          <!-- <img src=""> -->
+          <img class="app-badge appicon" src="assets/img/dtalkz.png" style="width: 80px;" alt="..." />
+        </a></div>
+      <!-- Uncomment below if you prefer to use an image logo -->
+      <!-- <a href="index.html" class="logo me-auto me-lg-0"><img src="assets/img/logo.png" alt="" class="img-fluid"></a>-->
 
-            <label for="reason">Reason for Deletion (Optional):</label><br>
-            <textarea id="reason" name="reason"></textarea><br><br>
+      <nav id="navbar" class="navbar order-last order-lg-0">
+        <ul>
+          <li><a class="nav-link scrollto" href="index.html#hero">Home</a></li>
+          <li><a class="nav-link scrollto" href="index.html#about">About</a></li>
+          <!-- <li><a class="nav-link scrollto" href="#services">Services</a></li>
+          <li><a class="nav-link scrollto " href="#portfolio">Portfolio</a></li>
+          <li><a class="nav-link scrollto" href="#team">Team</a></li> -->
+          <li><a class="nav-link scrollto" href="index.html#contact">Contact</a></li>
+        </ul>
+        <i class="bi bi-list mobile-nav-toggle"></i>
+      </nav><!-- .navbar -->
 
-            <label>
-                <input type="checkbox" name="confirm" required>
-                I understand that this action is irreversible and will permanently delete my account and associated data.
-            </label><br><br>
+      <!-- <a href="#about" class="get-started-btn scrollto">Get Started</a> -->
 
-            <input type="submit" value="Submit Request">
-        </form>
+    </div>
+  </header><!-- End Header -->
 
-        <div id="confirmationMessage" style="display:none; margin-top: 20px;">
-            <h3>Your account deletion request has been submitted successfully!</h3>
-            <p>We will process your request within 30 days. If you have any questions, please contact support.</p>
+  <main id="main" style="padding-top: 80px;">
+    <!-- ======= Delete Account Request Section ======= -->
+    <section class="about" style="padding: 60px 0;">
+      <div class="container" data-aos="fade-up">
+        <div class="section-title">
+          <h2>Delete Account Request</h2>
+          <p>Request to Delete Your Account</p>
         </div>
 
-        <p><strong>Data Retention:</strong> Upon approval, your account and associated data will be permanently deleted within 30 days.</p>
+        <div class="row justify-content-center">
+          <div class="col-lg-8">
+            <div class="card shadow-sm" style="border: none; border-radius: 8px; padding: 40px;">
+              <p class="text-center mb-4" style="color: #666;">
+                Fill out the form below to request account deletion. Once submitted, our team will process your request.
+              </p>
+
+              <form id="deleteForm" onsubmit="submitDeleteRequest(event)" class="php-email-form">
+                <div class="form-group mb-3">
+                  <label for="username" style="font-weight: 600; color: #444; margin-bottom: 8px; display: block;">
+                    User Name <span style="color: #ed3c0d;">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="username" 
+                    name="username" 
+                    placeholder="Enter your username" 
+                    required
+                    style="border-radius: 4px; height: 44px; border: 1px solid #ddd; padding: 10px 15px; font-size: 14px;"
+                  >
+                </div>
+
+                <div class="form-group mb-4">
+                  <label for="mobile" style="font-weight: 600; color: #444; margin-bottom: 8px; display: block;">
+                    Mobile Number <span style="color: #ed3c0d;">*</span>
+                  </label>
+                  <input 
+                    type="tel" 
+                    class="form-control" 
+                    id="mobile" 
+                    name="mobile" 
+                    placeholder="Enter your mobile number" 
+                    required
+                    pattern="[0-9]{10}"
+                    maxlength="10"
+                    style="border-radius: 4px; height: 44px; border: 1px solid #ddd; padding: 10px 15px; font-size: 14px;"
+                  >
+                  <small class="form-text text-muted" style="font-size: 12px; margin-top: 5px;">
+                    Please enter a valid 10-digit mobile number
+                  </small>
+                </div>
+
+                <div class="form-group mb-4">
+                  <div class="form-check">
+                    <input 
+                      class="form-check-input" 
+                      type="checkbox" 
+                      id="confirm" 
+                      name="confirm" 
+                      required
+                      style="margin-top: 0.3rem;"
+                    >
+                    <label class="form-check-label" for="confirm" style="color: #444; font-size: 14px; line-height: 1.5;">
+                      I have read and understood all the <strong>Account Deletion Terms & Conditions</strong> stated below. I acknowledge that this action is <strong style="color: #ed3c0d;">irreversible</strong> and will permanently delete my account and most associated data. I understand that <strong>not all data will be deleted</strong> and some information may be retained for security, legal, or business purposes as outlined in the terms. I agree to proceed with the account deletion request.
+                    </label>
+                  </div>
+                </div>
+
+                <div class="text-center">
+                  <button type="submit" class="btn" style="background: #ffc451; border: 0; padding: 12px 40px; color: #151515; font-weight: 600; border-radius: 4px; transition: 0.4s; font-size: 16px;">
+                    Submit Request
+                  </button>
+                </div>
+        </form>
+
+              <div id="loadingMessage" style="display:none; margin-top: 30px; text-align: center;">
+                <div class="alert alert-info" role="alert" style="background: #0dcaf0; color: #fff; padding: 20px; border-radius: 4px; border: none;">
+                  <div class="spinner-border text-light" role="status" style="margin-bottom: 15px;">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <h4 style="color: #fff; margin-bottom: 10px;">Processing Your Request</h4>
+                  <p style="margin-bottom: 0; color: #fff;">
+                    Please wait while we submit your account deletion request...
+                  </p>
+                </div>
+              </div>
+
+              <div id="errorMessage" style="display:none; margin-top: 30px; text-align: center;">
+              </div>
+
+              <div id="confirmationMessage" style="display:none; margin-top: 30px; text-align: center;">
+                <div class="alert alert-success" role="alert" style="background: #18d26e; color: #fff; padding: 20px; border-radius: 4px; border: none;">
+                  <h4 style="color: #fff; margin-bottom: 15px;">Request Submitted Successfully!</h4>
+                  <p style="margin-bottom: 10px; color: #fff;">
+                    Your account deletion request has been submitted. Our team will review your request within 5-7 business days.
+                  </p>
+                  <p style="margin-bottom: 0; color: #fff; font-size: 14px;">
+                    <strong>Timeline:</strong> Upon approval, your account will be blocked for 30 days, after which your data will be permanently deleted between 30-60 days from approval. 
+                    If you have any questions, please contact support at <a href="mailto:dtalkzinfo@gmail.com" style="color: #fff; text-decoration: underline;">dtalkzinfo@gmail.com</a>.
+                  </p>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-4" style="border-top: 1px solid #eee;">
+                <h5 style="color: #444; font-weight: 600; margin-bottom: 20px; text-align: center;">Account Deletion Terms & Conditions</h5>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
+                  <h6 style="color: #444; font-weight: 600; margin-bottom: 12px; font-size: 15px;">
+                    <i class="bi bi-info-circle" style="margin-right: 8px;"></i>Important Information
+                  </h6>
+                  <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px; line-height: 1.8;">
+                    <li>Account deletion is <strong style="color: #ed3c0d;">permanent and irreversible</strong>. Once deleted, you cannot recover your account or most associated data.</li>
+                    <li><strong>Account Blocking:</strong> Upon approval, your account will be <strong>immediately blocked</strong> for 30 days, during which you will have no access to your account or services.</li>
+                    <li><strong>Data Deletion:</strong> While we will delete most of your personal data and content, <strong>not all data may be deleted</strong>. Some information may be retained for security, legal, or business purposes as outlined below.</li>
+                    <li>Your profile information, preferences, and settings will be deleted after the blocking period, subject to any security or legal retention requirements.</li>
+                    <li>Any pending transactions, earnings, or rewards associated with your account will be forfeited upon account blocking.</li>
+                    <li>You will lose access to all features and services immediately upon account blocking, which occurs right after approval.</li>
+                  </ul>
+                </div>
+
+                <div style="background: #fff3cd; padding: 20px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ffc451;">
+                  <h6 style="color: #856404; font-weight: 600; margin-bottom: 12px; font-size: 15px;">
+                    <i class="bi bi-exclamation-triangle" style="margin-right: 8px;"></i>Processing Timeline
+                  </h6>
+                  <ul style="margin: 0; padding-left: 20px; color: #856404; font-size: 14px; line-height: 1.8;">
+                    <li><strong>Review Period:</strong> Your deletion request will be reviewed by our team within <strong>5-7 business days</strong>.</li>
+                    <li><strong>Verification:</strong> We may contact you via the provided mobile number to verify your identity and confirm the deletion request.</li>
+                    <li><strong>Account Blocking:</strong> Upon approval, your account will be <strong>blocked immediately</strong> and remain inaccessible for a period of <strong>30 days</strong>. During this time, you will not be able to access your account or any services.</li>
+                    <li><strong>Data Deletion Period:</strong> After the 30-day blocking period, most of your account data will be permanently deleted. The deletion process will occur <strong>between 30-60 days</strong> from the date of approval (i.e., within the next 30 days after the blocking period ends).</li>
+                    <li><strong>Partial Data Retention:</strong> Please note that <strong>not all data will be deleted</strong>. Some information may be retained for security reasons, legal compliance, or business purposes as detailed in the Data Retention section below. This retention is <strong>not always applicable</strong> and depends on specific circumstances.</li>
+                  </ul>
+                </div>
+
+                <div style="background: #d1ecf1; padding: 20px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #0c5460;">
+                  <h6 style="color: #0c5460; font-weight: 600; margin-bottom: 12px; font-size: 15px;">
+                    <i class="bi bi-shield-check" style="margin-right: 8px;"></i>Data Retention & Legal Requirements
+                  </h6>
+                  <ul style="margin: 0; padding-left: 20px; color: #0c5460; font-size: 14px; line-height: 1.8;">
+                    <li><strong>Not All Data Will Be Deleted:</strong> While we will delete most of your personal data, <strong>some information may be stored for security reasons</strong>. This retention is <strong>not always applicable</strong> and depends on specific circumstances such as security concerns, legal requirements, or business needs.</li>
+                    <li><strong>Security-Related Data:</strong> For security purposes, we may retain certain information such as account activity logs, IP addresses, device information, and security-related metadata. This helps us maintain platform security, prevent fraud, and protect other users. <strong>This retention is not guaranteed and may vary</strong> based on security assessments.</li>
+                    <li><strong>Financial Records:</strong> Financial records and transaction history may be retained for accounting, tax, and audit purposes as per applicable laws and regulations. This retention is subject to legal requirements and may not always be necessary.</li>
+                    <li><strong>Legal Proceedings:</strong> Information related to ongoing disputes, legal proceedings, or investigations will be retained until resolution or as required by law. This applies only when such proceedings are active.</li>
+                    <li><strong>Business Records:</strong> Some anonymized or aggregated data that cannot identify you personally may be retained for business analytics, service improvement, and record-keeping purposes. This retention is optional and may not always occur.</li>
+                    <li><strong>Compliance:</strong> We comply with all applicable data protection laws, regulations, and legal requirements in handling your deletion request and data retention. Retention decisions are made on a case-by-case basis.</li>
+                    <li><strong>Record Storage:</strong> Any retained data will be stored securely and only used for the specific purposes mentioned above, in compliance with applicable privacy laws. The scope of retention may vary and is not always required.</li>
+                  </ul>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 6px;">
+                  <h6 style="color: #444; font-weight: 600; margin-bottom: 12px; font-size: 15px;">
+                    <i class="bi bi-question-circle" style="margin-right: 8px;"></i>Before You Proceed
+                  </h6>
+                  <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px; line-height: 1.8;">
+                    <li>Ensure you have downloaded or saved any content you wish to keep before submitting this request.</li>
+                    <li>Cancel any active subscriptions or services associated with your account.</li>
+                    <li>Resolve any pending disputes, transactions, or issues before deletion.</li>
+                    <li>If you change your mind, you must contact us at <a href="mailto:dtalkzinfo@gmail.com" style="color: #ffc451; text-decoration: none;">dtalkzinfo@gmail.com</a> within 24 hours of submission.</li>
+                    <li>After the 24-hour grace period, the deletion process cannot be reversed.</li>
+                  </ul>
+                </div>
+
+                <div class="text-center mt-4">
+                  <p style="color: #666; font-size: 13px; margin-bottom: 0;">
+                    By submitting this form, you acknowledge that you have read, understood, and agree to all the terms and conditions stated above.
+                  </p>
+                  <p style="color: #999; font-size: 12px; margin-top: 10px; margin-bottom: 0;">
+                    For questions or concerns, contact us at <a href="mailto:dtalkzinfo@gmail.com" style="color: #ffc451;">dtalkzinfo@gmail.com</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- End Delete Account Request Section -->
+  </main><!-- End #main -->
+
+  <!-- ======= Footer ======= -->
+  <footer id="footer">
+    <div class="footer-top">
+      <div class="container">
+        <div class="row">
+
+          <div class="col-lg-3 col-md-6">
+            <div class="footer-info">
+              <a href="#!"><img class="app-badge appicon" src="assets/img/dtalkz.png" alt="..." /></a>
+              <!-- <h3>Dtalkz<span>.</span></h3>
+              <p> -->
+                <!-- A108 Adam Street  -->
+                <!-- <br> -->
+                <!-- NY 535022, USA -->
+                <!-- <br><br> -->
+                <!-- <strong>Phone:</strong> +1 5589 55488 55 -->
+                <!-- <br> -->
+                <!-- <strong>Email:</strong> dtalkzinfo@gmail.com<br>
+              </p> -->
+              <!-- <div class="social-links mt-3">
+                <a href="#" class="twitter"><i class="bx bxl-twitter"></i></a>
+                <a href="#" class="facebook"><i class="bx bxl-facebook"></i></a>
+                <a href="https://www.instagram.com/dtalkz__/" class="instagram"><i class="bx bxl-instagram"></i></a>
+                <a href="#" class="google-plus"><i class="bx bxl-skype"></i></a>
+                <a href="#" class="linkedin"><i class="bx bxl-linkedin"></i></a>
+              </div> -->
+            </div>
+          </div>
+
+          <div class="col-lg-2 col-md-6 footer-links">
+            <h4>Useful Links</h4>
+            <ul>
+              <li><i class="bx bx-chevron-right"></i> <a href="index.html#hero">Home</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="index.html#about">About Us</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="index.html#contact">Contact Us</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="./privacy-policy.html" target="_blank">Privacy Policy</a></li><!--TODO : PRIVACYPOLICYURL-->
+              <li><i class="bx bx-chevron-right"></i> <a href="./delete-account-request.html" target="_blank">Delete Account</a></li><!--TODO : PRIVACYPOLICYURL-->
+              <!-- <li><i class="bx bx-chevron-right"></i> <a href="#">Terms of service</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="#">Privacy policy</a></li> -->
+            </ul>
+          </div>
+
+          <div class="col-lg-3 col-md-6 footer-links">
+            <!-- <h4>Our Services</h4>
+            <ul>
+              <li><i class="bx bx-chevron-right"></i> <a href="#">Web Design</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="#">Web Development</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="#">Product Management</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="#">Marketing</a></li>
+              <li><i class="bx bx-chevron-right"></i> <a href="#">Graphic Design</a></li>
+            </ul> -->
+          </div>
+
+          <div class="col-lg-4 col-md-6 footer-newsletter">
+            <!-- <h4>Our Newsletter</h4>
+            <p>Tamen quem nulla quae legam multos aute sint culpa legam noster magna</p> -->
+            <!-- <form action="" method="post">
+              <input type="email" name="email"><input type="submit" value="Subscribe">
+            </form> -->
+            <br>
+            <br>
+            <div class="col-12 col-md-12">
+                <a href="#!"><img class="app-badge appicon py-1" src="assets/img/google-play-badge.svg" alt="..." /></a>
+                <a href="#!"><img class="app-badge appicon py-1" src="assets/img/app-store-badge.svg" alt="..." /></a>
+            </div>
+            <div class="social-links mt-3">
+              <a href="#" class="twitter"><i class="bx bxl-twitter"></i></a>
+              <a href="#" class="facebook"><i class="bx bxl-facebook"></i></a>
+              <a href="https://www.instagram.com/dtalkz__/" class="instagram"><i class="bx bxl-instagram"></i></a>
+              <a href="#" class="google-plus"><i class="bx bxl-skype"></i></a>
+              <a href="#" class="linkedin"><i class="bx bxl-linkedin"></i></a>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+        </div>
+
+    <div class="container">
+      <div class="copyright">
+        &copy; Copyright <strong><span>Dtalkz</span></strong>. All Rights Reserved
+      </div>
+      <div class="credits">
+        <!-- All the links in the footer should remain intact. -->
+        <!-- You can delete the links only if you purchased the pro version. -->
+        <!-- Licensing information: https://bootstrapmade.com/license/ -->
+        <!-- Purchase the pro version with working PHP/AJAX contact form: https://bootstrapmade.com/gp-free-multipurpose-html-bootstrap-template/ -->
+        Designed by <a href="https://dtalkz.in/">Dtalkz</a>
+      </div>
     </div>
+  </footer><!-- End Footer -->
+
+  <div id="preloader"></div>
+  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/purecounter/purecounter_vanilla.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+  <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS File -->
+  <script src="assets/js/main.js"></script>
+
 </body>
 
 </html>
