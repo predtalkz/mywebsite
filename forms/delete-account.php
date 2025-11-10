@@ -4,11 +4,20 @@
  * This file handles the account deletion request by making a secure API call server-side
  */
 
-// Set headers for JSON response
-header('Content-Type: application/json');
+// Disable error display and ensure clean output
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+// Set headers for JSON response (must be first output)
+header('Content-Type: application/json; charset=utf-8');
+
+// Prevent any output before JSON
+ob_start();
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    ob_end_clean();
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
     exit;
@@ -20,6 +29,7 @@ $phoneNumber = isset($_POST['phoneNumber']) ? trim($_POST['phoneNumber']) : '';
 
 // Validate required fields
 if (empty($userName) || empty($phoneNumber)) {
+    ob_end_clean();
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'User name and phone number are required']);
     exit;
@@ -79,31 +89,54 @@ curl_close($ch);
 
 // Handle cURL errors
 if ($curlError) {
+    ob_end_clean();
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to connect to the server. Please try again later.'
+        'message' => 'Failed to connect to the server. Please try again later.',
+        'error' => $curlError
     ]);
     exit;
 }
 
+// Clean any output buffer before sending JSON
+ob_end_clean();
+
 // Handle API response
-if ($httpCode >= 200 && $httpCode < 300) {
-    // Success response
-    $responseData = json_decode($response, true);
-    echo json_encode([
-        'success' => true,
-        'message' => 'Account deletion request submitted successfully',
-        'data' => $responseData
-    ]);
-} else {
-    // Error response
-    $errorData = json_decode($response, true);
-    http_response_code($httpCode);
+try {
+    if ($httpCode >= 200 && $httpCode < 300) {
+        // Success response
+        $responseData = json_decode($response, true);
+        // If response is not valid JSON, treat it as success anyway
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $responseData = $response;
+        }
+        echo json_encode([
+            'success' => true,
+            'message' => 'Account deletion request submitted successfully',
+            'data' => $responseData
+        ]);
+    } else {
+        // Error response
+        $errorData = json_decode($response, true);
+        // If response is not valid JSON, use the raw response
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $errorData = ['raw_response' => $response];
+        }
+        http_response_code($httpCode);
+        echo json_encode([
+            'success' => false,
+            'message' => isset($errorData['message']) ? $errorData['message'] : 'An error occurred while processing your request',
+            'error' => $errorData,
+            'httpCode' => $httpCode
+        ]);
+    }
+} catch (Exception $e) {
+    http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => isset($errorData['message']) ? $errorData['message'] : 'An error occurred while processing your request',
-        'error' => $errorData
+        'message' => 'An unexpected error occurred',
+        'error' => $e->getMessage()
     ]);
 }
 ?>
