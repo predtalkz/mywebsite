@@ -87,6 +87,10 @@ $curlError = curl_error($ch);
 
 curl_close($ch);
 
+// Log the API response for debugging (remove in production)
+// error_log("API Response Code: " . $httpCode);
+// error_log("API Response: " . $response);
+
 // Handle cURL errors
 if ($curlError) {
     ob_end_clean();
@@ -104,39 +108,71 @@ ob_end_clean();
 
 // Handle API response
 try {
+    // Check if we got a valid HTTP code
+    if ($httpCode === 0 || $httpCode === false) {
+        // No HTTP code means connection failed
+        ob_end_clean();
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to connect to the API server',
+            'error' => 'Connection failed or timeout'
+        ]);
+        exit;
+    }
+    
     if ($httpCode >= 200 && $httpCode < 300) {
-        // Success response
+        // Success response from API
         $responseData = json_decode($response, true);
-        // If response is not valid JSON, treat it as success anyway
+        
+        // If response is not valid JSON, wrap it
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $responseData = $response;
+            // API returned non-JSON response, wrap it
+            $responseData = [
+                'raw_response' => $response,
+                'httpCode' => $httpCode
+            ];
         }
+        
+        // Return success response to frontend
+        ob_end_clean();
         echo json_encode([
             'success' => true,
             'message' => 'Account deletion request submitted successfully',
-            'data' => $responseData
+            'data' => $responseData,
+            'apiResponse' => $response, // Include raw API response for debugging
+            'httpCode' => $httpCode
         ]);
     } else {
-        // Error response
+        // Error response from API
         $errorData = json_decode($response, true);
+        
         // If response is not valid JSON, use the raw response
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $errorData = ['raw_response' => $response];
+            $errorData = [
+                'raw_response' => $response,
+                'httpCode' => $httpCode
+            ];
         }
+        
+        ob_end_clean();
         http_response_code($httpCode);
         echo json_encode([
             'success' => false,
             'message' => isset($errorData['message']) ? $errorData['message'] : 'An error occurred while processing your request',
             'error' => $errorData,
+            'apiResponse' => $response, // Include raw API response for debugging
             'httpCode' => $httpCode
         ]);
     }
 } catch (Exception $e) {
+    ob_end_clean();
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => 'An unexpected error occurred',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
+        'trace' => $e->getTraceAsString()
     ]);
 }
 ?>

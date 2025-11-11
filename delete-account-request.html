@@ -35,6 +35,26 @@
   * License: https://bootstrapmade.com/license/
   ======================================================== -->
     <script>
+        // Function to get user's IP address
+        async function getUserIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                console.error('Error fetching IP:', error);
+                // Fallback: try alternative service
+                try {
+                    const response = await fetch('https://api64.ipify.org?format=json');
+                    const data = await response.json();
+                    return data.ip;
+                } catch (error2) {
+                    console.error('Error fetching IP from fallback:', error2);
+                    return 'unknown';
+                }
+            }
+        }
+
         // Function to submit delete account request
         async function submitDeleteRequest(event) {
             event.preventDefault(); // Prevent actual form submission
@@ -66,31 +86,38 @@
             document.getElementById("confirmationMessage").style.display = "none";
 
             try {
-                // Prepare form data
-                const formData = new FormData();
-                formData.append('userName', userName);
-                formData.append('phoneNumber', phoneNumber);
+                // Get user's IP address
+                const userIP = await getUserIP();
 
-                // Make API call through PHP proxy (secure server-side call)
-                const response = await fetch('forms/delete-account.php', {
+                // Prepare request data (matching curl format)
+                const requestData = {
+                    userName: userName,
+                    phoneNumber: phoneNumber,
+                    ipAddress: userIP
+                };
+
+                // Make API call directly to the endpoint
+                const response = await fetch('http://api.dtalkz.com:8082/account/delete', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
                 });
-
-                // Parse response
-                const data = await response.json();
 
                 // Hide loading message
                 document.getElementById("loadingMessage").style.display = "none";
 
-                // Check if response is successful
-                if (data.success) {
+                // Check if response is ok
+                if (response.ok) {
+                    const data = await response.json();
                     // Show success message
                     document.getElementById("confirmationMessage").style.display = "block";
                     document.getElementById("confirmationMessage").scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
                     // Handle error response
-                    throw new Error(data.message || 'An error occurred while processing your request.');
+                    const errorData = await response.json().catch(() => ({ message: `Server error: ${response.status}` }));
+                    throw new Error(errorData.message || `An error occurred while processing your request. Status: ${response.status}`);
                 }
             } catch (error) {
                 console.error('Error submitting request:', error);
@@ -217,7 +244,7 @@ margin: 0 auto;
                 Fill out the form below to request account deletion. Once submitted, our team will process your request.
               </p>
 
-              <form id="deleteForm" onsubmit="submitDeleteRequest(event)" class="php-email-form">
+              <form id="deleteForm" onsubmit="submitDeleteRequest(event)">
                 <div class="form-group mb-3">
                   <label for="username" style="font-weight: 600; color: #444; margin-bottom: 8px; display: block;">
                     User Name <span style="color: #ed3c0d;">*</span>
