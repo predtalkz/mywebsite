@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dtalkz Admin - KYC Portal</title>
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body { background: #0d1117; color: #e6edf3; }
+    .card { background: #161b22; border: 1px solid #30363d; }
+    .status-pill { font-size: 12px; padding: 4px 10px; border-radius: 999px; }
+    .status-pending { background: #3d2f00; color: #ffd666; }
+    .status-approved { background: #0f5132; color: #7ee787; }
+    .status-rejected { background: #5a1a1a; color: #ffa198; }
+    .doc-thumb { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; border: 1px solid #30363d; }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <h3 class="mb-3">Dtalkz Admin KYC Portal</h3>
+
+    <div id="loginCard" class="card p-3 mb-4">
+      <h5 class="mb-3">Admin Login</h5>
+      <div class="row g-2">
+        <div class="col-md-4"><input id="username" class="form-control" placeholder="Username" /></div>
+        <div class="col-md-4"><input id="password" type="password" class="form-control" placeholder="Password" /></div>
+        <div class="col-md-4 d-grid"><button id="loginBtn" class="btn btn-warning">Login</button></div>
+      </div>
+      <small class="mt-2 text-secondary">Test credentials default: admin@dtalkz.com / Admin@123</small>
+    </div>
+
+    <div id="panel" class="d-none">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2">
+          <select id="statusFilter" class="form-select form-select-sm">
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="all">All</option>
+          </select>
+          <button id="refreshBtn" class="btn btn-outline-light btn-sm">Refresh</button>
+        </div>
+        <button id="logoutBtn" class="btn btn-outline-danger btn-sm">Logout</button>
+      </div>
+      <div id="sessionNote" class="alert alert-secondary py-2">Session active (auto logout in 1 hour).</div>
+      <div id="list" class="row g-3"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://api.dtalkz.com:8082";
+    const TOKEN_KEY = "dtalkz_admin_token";
+    const EXPIRE_KEY = "dtalkz_admin_expire_at";
+    const listEl = document.getElementById("list");
+    const panel = document.getElementById("panel");
+    const loginCard = document.getElementById("loginCard");
+    const statusFilter = document.getElementById("statusFilter");
+
+    function authHeaders() {
+      return {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + (localStorage.getItem(TOKEN_KEY) || ""),
+      };
+    }
+
+    function logout() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(EXPIRE_KEY);
+      panel.classList.add("d-none");
+      loginCard.classList.remove("d-none");
+      listEl.innerHTML = "";
+    }
+
+    function enforceSession() {
+      const expireAt = Number(localStorage.getItem(EXPIRE_KEY) || 0);
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token || !expireAt || Date.now() >= expireAt) {
+        logout();
+        return false;
+      }
+      return true;
+    }
+
+    async function adminLogin() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const res = await fetch(API_BASE + "/v1/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      const json = await res.json();
+      if (!res.ok || json.statusCode !== 200 || !json.data?.token) {
+        alert(json.data || "Login failed");
+        return;
+      }
+      localStorage.setItem(TOKEN_KEY, json.data.token);
+      localStorage.setItem(EXPIRE_KEY, String(Date.now() + (60 * 60 * 1000)));
+      loginCard.classList.add("d-none");
+      panel.classList.remove("d-none");
+      await loadRequests();
+    }
+
+    function statusClass(status) {
+      if (status === "approved") return "status-approved";
+      if (status === "rejected") return "status-rejected";
+      return "status-pending";
+    }
+
+    async function loadRequests() {
+      if (!enforceSession()) return;
+      const status = statusFilter.value || "pending";
+      const res = await fetch(API_BASE + "/v1/admin/kyc/requests?status=" + encodeURIComponent(status), {
+        method: "GET",
+        headers: authHeaders(),
+      });
+      if (res.status === 401 || res.status === 403) {
+        alert("Session expired. Please login again.");
+        logout();
+        return;
+      }
+      const json = await res.json();
+      if (!res.ok || json.statusCode !== 200) {
+        alert(json.data || "Failed to load KYC requests");
+        return;
+      }
+      const rows = json.data || [];
+      if (!rows.length) {
+        listEl.innerHTML = "<div class='col-12'><div class='alert alert-dark'>No KYC requests found.</div></div>";
+        return;
+      }
+      listEl.innerHTML = rows.map((item) => `
+        <div class="col-12">
+          <div class="card p-3">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div><strong>User ID:</strong> ${item.userId}</div>
+                <div><strong>PAN:</strong> ${item.panNumber}</div>
+                <div><strong>Aadhaar:</strong> ${item.aadhaarNumber}</div>
+                <div><strong>Submitted:</strong> ${item.submittedAt ? new Date(item.submittedAt).toLocaleString() : "-"}</div>
+              </div>
+              <span class="status-pill ${statusClass(item.verificationStatus)}">${item.verificationStatus}</span>
+            </div>
+            <div class="row mt-3 g-3">
+              <div class="col-md-4">${item.documents.panCardUrl ? `<a target="_blank" href="${API_BASE}${item.documents.panCardUrl}"><img class="doc-thumb" src="${API_BASE}${item.documents.panCardUrl}" alt="PAN" /></a>` : ""}</div>
+              <div class="col-md-4">${item.documents.aadhaarFrontUrl ? `<a target="_blank" href="${API_BASE}${item.documents.aadhaarFrontUrl}"><img class="doc-thumb" src="${API_BASE}${item.documents.aadhaarFrontUrl}" alt="Aadhaar Front" /></a>` : ""}</div>
+              <div class="col-md-4">${item.documents.aadhaarBackUrl ? `<a target="_blank" href="${API_BASE}${item.documents.aadhaarBackUrl}"><img class="doc-thumb" src="${API_BASE}${item.documents.aadhaarBackUrl}" alt="Aadhaar Back" /></a>` : ""}</div>
+            </div>
+            ${item.verificationStatus === "pending" ? `
+              <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-success btn-sm" onclick="takeAction('${item.id}','approve')">Approve</button>
+                <button class="btn btn-danger btn-sm" onclick="takeAction('${item.id}','reject')">Reject</button>
+              </div>
+            ` : `
+              <div class="mt-2 text-secondary small">Reviewed by: ${item.reviewedBy || "-"} ${item.rejectionReason ? `| Reason: ${item.rejectionReason}` : ""}</div>
+            `}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function takeAction(kycId, action) {
+      if (!enforceSession()) return;
+      let reason = "";
+      if (action === "reject") {
+        reason = prompt("Enter rejection reason:");
+        if (!reason || !reason.trim()) {
+          alert("Rejection reason is required.");
+          return;
+        }
+      }
+      const res = await fetch(API_BASE + "/v1/admin/kyc/action", {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({ kycId, action, reason }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.statusCode !== 200) {
+        alert(json.data || "Action failed");
+        return;
+      }
+      await loadRequests();
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", adminLogin);
+    document.getElementById("refreshBtn").addEventListener("click", loadRequests);
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+    statusFilter.addEventListener("change", loadRequests);
+    window.takeAction = takeAction;
+
+    setInterval(() => {
+      if (!enforceSession()) return;
+      const expireAt = Number(localStorage.getItem(EXPIRE_KEY) || 0);
+      const minutesLeft = Math.max(0, Math.ceil((expireAt - Date.now()) / 60000));
+      document.getElementById("sessionNote").innerText = `Session active (${minutesLeft} minute(s) left, auto logout in 1 hour).`;
+    }, 15000);
+
+    if (enforceSession()) {
+      loginCard.classList.add("d-none");
+      panel.classList.remove("d-none");
+      loadRequests();
+    }
+  </script>
+</body>
+</html>
