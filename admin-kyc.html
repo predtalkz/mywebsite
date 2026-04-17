@@ -18,6 +18,9 @@
 <body>
   <div class="container py-4">
     <h3 class="mb-3">Dtalkz Admin KYC Portal</h3>
+    <p id="apiHint" class="small text-secondary d-none">
+      This page is HTTPS but the API URL is HTTP — the browser will block requests. Set <code>window.DTALKZ_API_BASE</code> to your HTTPS API base (same host as the app server) or enable TLS on the API.
+    </p>
 
     <div id="loginCard" class="card p-3 mb-4">
       <h5 class="mb-3">Admin Login</h5>
@@ -48,7 +51,14 @@
   </div>
 
   <script>
-    const API_PROXY = "./admin-kyc-proxy.php";
+    const API_BASE = (typeof window.DTALKZ_API_BASE === "string" && window.DTALKZ_API_BASE)
+      ? window.DTALKZ_API_BASE.replace(/\/$/, "")
+      : "http://api.dtalkz.com:8082";
+
+    if (window.location.protocol === "https:" && API_BASE.startsWith("http://")) {
+      document.getElementById("apiHint").classList.remove("d-none");
+    }
+
     const TOKEN_KEY = "dtalkz_admin_token";
     const EXPIRE_KEY = "dtalkz_admin_expire_at";
     const listEl = document.getElementById("list");
@@ -81,42 +91,26 @@
       return true;
     }
 
-    function apiUrl(endpoint, queryString = "") {
-      const qs = queryString ? `&query=${encodeURIComponent(queryString)}` : "";
-      return `${API_PROXY}?endpoint=${encodeURIComponent(endpoint)}${qs}`;
-    }
-
-    function assetUrl(path) {
-      return `${API_PROXY}?asset=${encodeURIComponent(path || "")}`;
-    }
-
-    async function proxyJson(endpoint, method = "GET", payload = null, queryString = "") {
-      let url = apiUrl(endpoint, queryString) + `&method=${encodeURIComponent(method)}`;
-      if (payload !== null) {
-        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-        url += `&payload=${encodeURIComponent(encoded)}`;
-      }
-      const res = await fetch(url, { method: "GET" });
+    async function parseJsonResponse(res) {
       const text = await res.text();
-      let json = null;
       try {
-        json = JSON.parse(text);
+        return JSON.parse(text);
       } catch (e) {
-        throw new Error("Proxy did not return JSON. Response starts with: " + text.slice(0, 80));
+        throw new Error("Server did not return JSON: " + text.slice(0, 120));
       }
-      return { res, json };
     }
 
     async function adminLogin() {
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
-      const { res, json } = await proxyJson(
-        "/v1/admin/login",
-        "POST",
-        { username, password }
-      );
+      const res = await fetch(API_BASE + "/v1/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await parseJsonResponse(res);
       if (!res.ok || json.statusCode !== 200 || !json.data?.token) {
-        alert(json.data || "Login failed");
+        alert((json && json.data) || "Login failed");
         return;
       }
       localStorage.setItem(TOKEN_KEY, json.data.token);
@@ -135,20 +129,16 @@
     async function loadRequests() {
       if (!enforceSession()) return;
       const status = statusFilter.value || "pending";
-      const token = localStorage.getItem(TOKEN_KEY) || "";
-      const query = "status=" + status;
-      const payload = { authorization: "Bearer " + token };
-      const { res, json } = await proxyJson(
-        "/v1/admin/kyc/requests",
-        "GET",
-        payload,
-        query
+      const res = await fetch(
+        API_BASE + "/v1/admin/kyc/requests?status=" + encodeURIComponent(status),
+        { method: "GET", headers: authHeaders() }
       );
       if (res.status === 401 || res.status === 403) {
         alert("Session expired. Please login again.");
         logout();
         return;
       }
+      const json = await parseJsonResponse(res);
       if (!res.ok || json.statusCode !== 200) {
         alert(json.data || "Failed to load KYC requests");
         return;
@@ -171,9 +161,9 @@
               <span class="status-pill ${statusClass(item.verificationStatus)}">${item.verificationStatus}</span>
             </div>
             <div class="row mt-3 g-3">
-              <div class="col-md-4">${item.documents.panCardUrl ? `<a target="_blank" href="${assetUrl(item.documents.panCardUrl)}"><img class="doc-thumb" src="${assetUrl(item.documents.panCardUrl)}" alt="PAN" /></a>` : ""}</div>
-              <div class="col-md-4">${item.documents.aadhaarFrontUrl ? `<a target="_blank" href="${assetUrl(item.documents.aadhaarFrontUrl)}"><img class="doc-thumb" src="${assetUrl(item.documents.aadhaarFrontUrl)}" alt="Aadhaar Front" /></a>` : ""}</div>
-              <div class="col-md-4">${item.documents.aadhaarBackUrl ? `<a target="_blank" href="${assetUrl(item.documents.aadhaarBackUrl)}"><img class="doc-thumb" src="${assetUrl(item.documents.aadhaarBackUrl)}" alt="Aadhaar Back" /></a>` : ""}</div>
+              <div class="col-md-4">${item.documents.panCardUrl ? `<a target="_blank" href="${API_BASE}${item.documents.panCardUrl}"><img class="doc-thumb" src="${API_BASE}${item.documents.panCardUrl}" alt="PAN" /></a>` : ""}</div>
+              <div class="col-md-4">${item.documents.aadhaarFrontUrl ? `<a target="_blank" href="${API_BASE}${item.documents.aadhaarFrontUrl}"><img class="doc-thumb" src="${API_BASE}${item.documents.aadhaarFrontUrl}" alt="Aadhaar Front" /></a>` : ""}</div>
+              <div class="col-md-4">${item.documents.aadhaarBackUrl ? `<a target="_blank" href="${API_BASE}${item.documents.aadhaarBackUrl}"><img class="doc-thumb" src="${API_BASE}${item.documents.aadhaarBackUrl}" alt="Aadhaar Back" /></a>` : ""}</div>
             </div>
             ${item.verificationStatus === "pending" ? `
               <div class="d-flex gap-2 mt-3">
@@ -198,17 +188,12 @@
           return;
         }
       }
-      const token = localStorage.getItem(TOKEN_KEY) || "";
-      const { res, json } = await proxyJson(
-        "/v1/admin/kyc/action",
-        "PUT",
-        {
-          kycId,
-          action,
-          reason,
-          authorization: "Bearer " + token,
-        }
-      );
+      const res = await fetch(API_BASE + "/v1/admin/kyc/action", {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({ kycId, action, reason }),
+      });
+      const json = await parseJsonResponse(res);
       if (!res.ok || json.statusCode !== 200) {
         alert(json.data || "Action failed");
         return;
