@@ -48,6 +48,9 @@
   </div>
 
   <script>
+    if (window.location.protocol === "https:") {
+      window.location.replace("http://" + window.location.host + window.location.pathname + window.location.search + window.location.hash);
+    }
     const API_BASE = "http://api.dtalkz.com:8082";
     const TOKEN_KEY = "dtalkz_admin_token";
     const EXPIRE_KEY = "dtalkz_admin_expire_at";
