@@ -90,15 +90,31 @@
       return `${API_PROXY}?asset=${encodeURIComponent(path || "")}`;
     }
 
+    async function proxyJson(endpoint, method = "GET", payload = null, queryString = "") {
+      let url = apiUrl(endpoint, queryString) + `&method=${encodeURIComponent(method)}`;
+      if (payload !== null) {
+        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+        url += `&payload=${encodeURIComponent(encoded)}`;
+      }
+      const res = await fetch(url, { method: "GET" });
+      const text = await res.text();
+      let json = null;
+      try {
+        json = JSON.parse(text);
+      } catch (e) {
+        throw new Error("Proxy did not return JSON. Response starts with: " + text.slice(0, 80));
+      }
+      return { res, json };
+    }
+
     async function adminLogin() {
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
-      const res = await fetch(apiUrl("/v1/admin/login"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-      });
-      const json = await res.json();
+      const { res, json } = await proxyJson(
+        "/v1/admin/login",
+        "POST",
+        { username, password }
+      );
       if (!res.ok || json.statusCode !== 200 || !json.data?.token) {
         alert(json.data || "Login failed");
         return;
@@ -119,16 +135,20 @@
     async function loadRequests() {
       if (!enforceSession()) return;
       const status = statusFilter.value || "pending";
-      const res = await fetch(apiUrl("/v1/admin/kyc/requests", "status=" + status), {
-        method: "GET",
-        headers: authHeaders(),
-      });
+      const token = localStorage.getItem(TOKEN_KEY) || "";
+      const query = "status=" + status;
+      const payload = { authorization: "Bearer " + token };
+      const { res, json } = await proxyJson(
+        "/v1/admin/kyc/requests",
+        "GET",
+        payload,
+        query
+      );
       if (res.status === 401 || res.status === 403) {
         alert("Session expired. Please login again.");
         logout();
         return;
       }
-      const json = await res.json();
       if (!res.ok || json.statusCode !== 200) {
         alert(json.data || "Failed to load KYC requests");
         return;
@@ -178,12 +198,17 @@
           return;
         }
       }
-      const res = await fetch(apiUrl("/v1/admin/kyc/action"), {
-        method: "PUT",
-        headers: authHeaders(),
-        body: JSON.stringify({ kycId, action, reason }),
-      });
-      const json = await res.json();
+      const token = localStorage.getItem(TOKEN_KEY) || "";
+      const { res, json } = await proxyJson(
+        "/v1/admin/kyc/action",
+        "PUT",
+        {
+          kycId,
+          action,
+          reason,
+          authorization: "Bearer " + token,
+        }
+      );
       if (!res.ok || json.statusCode !== 200) {
         alert(json.data || "Action failed");
         return;

@@ -75,15 +75,42 @@ if ($endpoint === '' || strpos($endpoint, '/v1/admin/') !== 0) {
 
 $query = isset($_GET['query']) ? trim($_GET['query']) : '';
 $url = $backendBase . $endpoint . ($query !== '' ? ('?' . $query) : '');
-$method = $_SERVER['REQUEST_METHOD'];
+$method = isset($_GET['method']) ? strtoupper(trim($_GET['method'])) : $_SERVER['REQUEST_METHOD'];
+$allowedMethods = ['GET', 'POST', 'PUT', 'DELETE'];
+if (!in_array($method, $allowedMethods, true)) {
+    sendJson(400, ['statusCode' => 400, 'data' => 'Invalid method']);
+}
 $headers = [];
-$body = file_get_contents('php://input');
+$body = null;
+
+if (isset($_GET['payload'])) {
+    $decodedPayload = base64_decode($_GET['payload'], true);
+    if ($decodedPayload === false) {
+        sendJson(400, ['statusCode' => 400, 'data' => 'Invalid payload']);
+    }
+    $body = $decodedPayload;
+} else {
+    $body = file_get_contents('php://input');
+}
 
 if (isset($_SERVER['HTTP_AUTHORIZATION']) && $_SERVER['HTTP_AUTHORIZATION'] !== '') {
     $headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
 }
 if (isset($_SERVER['CONTENT_TYPE']) && $_SERVER['CONTENT_TYPE'] !== '') {
     $headers[] = 'Content-Type: ' . $_SERVER['CONTENT_TYPE'];
+}
+
+if ($body !== null && $body !== '') {
+    $decodedJson = json_decode($body, true);
+    if (is_array($decodedJson) && isset($decodedJson['authorization'])) {
+        $headers[] = 'Authorization: ' . $decodedJson['authorization'];
+        unset($decodedJson['authorization']);
+        $body = json_encode($decodedJson);
+    }
+}
+
+if (!empty($body) && strpos(implode('|', $headers), 'Content-Type:') === false) {
+    $headers[] = 'Content-Type: application/json';
 }
 
 if ($method === 'GET') {
