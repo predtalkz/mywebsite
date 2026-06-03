@@ -53,7 +53,7 @@
   <script>
     const API_BASE = (typeof window.DTALKZ_API_BASE === "string" && window.DTALKZ_API_BASE)
       ? window.DTALKZ_API_BASE.replace(/\/$/, "")
-      : "http://api.dtalkz.com:8082";
+      : "https://api.dtalkz.com";
 
     if (window.location.protocol === "https:" && API_BASE.startsWith("http://")) {
       document.getElementById("apiHint").classList.remove("d-none");

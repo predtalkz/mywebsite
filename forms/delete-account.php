@@ -64,7 +64,7 @@ $apiData = [
 ];
 
 // API endpoint
-$apiUrl = 'http://api.dtalkz.com:8082/account/delete';
+$apiUrl = 'https://api.dtalkz.com/account/delete';
 
 // Initialize cURL
 $ch = curl_init($apiUrl);
