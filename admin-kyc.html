@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dtalkz Admin - KYC Portal</title>
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+  <script>
+    window.DTALKZ_API_BASE = "https://api.dtalkz.com";
+  </script>
   <style>
     body { background: #0d1117; color: #e6edf3; }
     .card { background: #161b22; border: 1px solid #30363d; }
@@ -51,9 +54,17 @@
   </div>
 
   <script>
-    const API_BASE = (typeof window.DTALKZ_API_BASE === "string" && window.DTALKZ_API_BASE)
-      ? window.DTALKZ_API_BASE.replace(/\/$/, "")
-      : "https://api.dtalkz.com";
+    function resolveApiBase() {
+      let base = (typeof window.DTALKZ_API_BASE === "string" && window.DTALKZ_API_BASE)
+        ? window.DTALKZ_API_BASE.trim().replace(/\/$/, "")
+        : "https://api.dtalkz.com";
+      if (window.location.protocol === "https:" && base.startsWith("http://")) {
+        base = "https://" + base.slice("http://".length);
+      }
+      return base;
+    }
+
+    const API_BASE = resolveApiBase();
 
     if (window.location.protocol === "https:" && API_BASE.startsWith("http://")) {
       document.getElementById("apiHint").classList.remove("d-none");
