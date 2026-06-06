@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dtalkz Admin - KYC Portal</title>
+  <title>Dtalkz Admin - Withdrawal Portal</title>
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
   <script>
     window.DTALKZ_API_BASE = "https://api.dtalkz.com";
@@ -15,18 +15,29 @@
     .status-pending { background: #3d2f00; color: #ffd666; }
     .status-approved { background: #0f5132; color: #7ee787; }
     .status-rejected { background: #5a1a1a; color: #ffa198; }
-    .doc-thumb { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; border: 1px solid #30363d; }
+    .upi-box {
+      background: #0f172a;
+      border: 1px dashed #ffc451;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffc451;
+      word-break: break-all;
+    }
+    .net-amount { font-size: 1.35rem; font-weight: 800; color: #7ee787; }
+    .muted { color: #8b949e; }
   </style>
 </head>
 <body>
   <div class="container py-4">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-      <h3 class="mb-0">Dtalkz Admin KYC Portal</h3>
-      <a href="admin-withdraw.html" class="btn btn-outline-secondary btn-sm">Withdrawal Portal</a>
+      <div>
+        <h3 class="mb-1">Dtalkz Admin — Withdrawal Portal</h3>
+        <p class="small muted mb-0">Approve after you send the net amount manually via UPI from your phone.</p>
+      </div>
+      <a href="admin-kyc.html" class="btn btn-outline-secondary btn-sm">KYC Portal</a>
     </div>
-    <p id="apiHint" class="small text-secondary d-none">
-      This page is HTTPS but the API URL is HTTP — the browser will block requests. Set <code>window.DTALKZ_API_BASE</code> to your HTTPS API base (same host as the app server) or enable TLS on the API.
-    </p>
 
     <div id="loginCard" class="card p-3 mb-4">
       <h5 class="mb-3">Admin Login</h5>
@@ -35,11 +46,11 @@
         <div class="col-md-4"><input id="password" type="password" class="form-control" placeholder="Password" /></div>
         <div class="col-md-4 d-grid"><button id="loginBtn" class="btn btn-warning">Login</button></div>
       </div>
-      <small class="mt-2 text-secondary">Test credentials default: admin@dtalkz.com / Admin@123</small>
+      <small class="mt-2 text-secondary">Same credentials as KYC portal</small>
     </div>
 
     <div id="panel" class="d-none">
-      <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div class="d-flex gap-2">
           <select id="statusFilter" class="form-select form-select-sm">
             <option value="pending">Pending</option>
@@ -68,11 +79,6 @@
     }
 
     const API_BASE = resolveApiBase();
-
-    if (window.location.protocol === "https:" && API_BASE.startsWith("http://")) {
-      document.getElementById("apiHint").classList.remove("d-none");
-    }
-
     const TOKEN_KEY = "dtalkz_admin_token";
     const EXPIRE_KEY = "dtalkz_admin_expire_at";
     const listEl = document.getElementById("list");
@@ -140,11 +146,23 @@
       return "status-pending";
     }
 
+    function rs(n) {
+      return "₹" + Number(n || 0).toFixed(2);
+    }
+
+    function escapeHtml(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
     async function loadRequests() {
       if (!enforceSession()) return;
       const status = statusFilter.value || "pending";
       const res = await fetch(
-        API_BASE + "/v1/admin/kyc/requests?status=" + encodeURIComponent(status),
+        API_BASE + "/v1/admin/withdraw/requests?status=" + encodeURIComponent(status),
         { method: "GET", headers: authHeaders() }
       );
       if (res.status === 401 || res.status === 403) {
@@ -154,58 +172,79 @@
       }
       const json = await parseJsonResponse(res);
       if (!res.ok || json.statusCode !== 200) {
-        alert(json.data || "Failed to load KYC requests");
+        alert(json.data || "Failed to load withdrawal requests");
         return;
       }
       const rows = json.data || [];
       if (!rows.length) {
-        listEl.innerHTML = "<div class='col-12'><div class='alert alert-dark'>No KYC requests found.</div></div>";
+        listEl.innerHTML = "<div class='col-12'><div class='alert alert-dark'>No withdrawal requests found.</div></div>";
         return;
       }
       listEl.innerHTML = rows.map((item) => `
         <div class="col-12">
           <div class="card p-3">
-            <div class="d-flex justify-content-between align-items-start">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
               <div>
-                <div><strong>User ID:</strong> ${item.userId}</div>
-                <div><strong>PAN:</strong> ${item.panNumber}</div>
-                <div><strong>Aadhaar:</strong> ${item.aadhaarNumber}</div>
-                <div><strong>Submitted:</strong> ${item.submittedAt ? new Date(item.submittedAt).toLocaleString() : "-"}</div>
+                <div><strong>User:</strong> ${escapeHtml(item.userName || "-")} <span class="muted small">(${escapeHtml(item.userId)})</span></div>
+                <div><strong>Phone:</strong> ${escapeHtml(item.phone || "-")}</div>
+                <div><strong>Crowns:</strong> ${item.crowns} &nbsp;|&nbsp; <strong>Gross:</strong> ${rs(item.grossInr)}</div>
+                <div class="muted small mt-1">
+                  Platform fee: ${rs(item.platformFee)} · TDS: ${rs(item.tdsAmount)} · Gateway: ${rs(item.gatewayFee)}
+                </div>
+                <div class="mt-1"><strong>Submitted:</strong> ${item.submittedAt ? new Date(item.submittedAt).toLocaleString() : "-"}</div>
               </div>
-              <span class="status-pill ${statusClass(item.verificationStatus)}">${item.verificationStatus}</span>
+              <span class="status-pill ${statusClass(item.status)}">${item.status}</span>
             </div>
+
             <div class="row mt-3 g-3">
-              <div class="col-md-4">${item.documents.panCardUrl ? `<a target="_blank" href="${API_BASE}${item.documents.panCardUrl}"><img class="doc-thumb" src="${API_BASE}${item.documents.panCardUrl}" alt="PAN" /></a>` : ""}</div>
-              <div class="col-md-4">${item.documents.aadhaarFrontUrl ? `<a target="_blank" href="${API_BASE}${item.documents.aadhaarFrontUrl}"><img class="doc-thumb" src="${API_BASE}${item.documents.aadhaarFrontUrl}" alt="Aadhaar Front" /></a>` : ""}</div>
-              <div class="col-md-4">${item.documents.aadhaarBackUrl ? `<a target="_blank" href="${API_BASE}${item.documents.aadhaarBackUrl}"><img class="doc-thumb" src="${API_BASE}${item.documents.aadhaarBackUrl}" alt="Aadhaar Back" /></a>` : ""}</div>
-            </div>
-            ${item.verificationStatus === "pending" ? `
-              <div class="d-flex gap-2 mt-3">
-                <button class="btn btn-success btn-sm" onclick="takeAction('${item.id}','approve')">Approve</button>
-                <button class="btn btn-danger btn-sm" onclick="takeAction('${item.id}','reject')">Reject</button>
+              <div class="col-md-6">
+                <div class="small muted mb-1">Send this net amount via UPI</div>
+                <div class="net-amount mb-2">${rs(item.netInr)}</div>
+                <div class="small muted mb-1">UPI ID</div>
+                <div class="upi-box">${escapeHtml(item.upiId || "—")}</div>
+                ${item.bankName ? `<div class="small muted mt-2">Bank: ${escapeHtml(item.bankName)} · A/C: ${escapeHtml(item.accountNo)} · IFSC: ${escapeHtml(item.ifscCode)}</div>` : ""}
               </div>
-            ` : `
-              <div class="mt-2 text-secondary small">Reviewed by: ${item.reviewedBy || "-"} ${item.rejectionReason ? `| Reason: ${item.rejectionReason}` : ""}</div>
-            `}
+              <div class="col-md-6">
+                ${item.status === "pending" ? `
+                  <p class="small">1. Open your UPI app and pay <strong>${rs(item.netInr)}</strong> to the UPI above.<br>2. Then click <strong>Mark paid (UPI sent)</strong>.</p>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-success btn-sm" onclick="takeAction('${item.id}','approve', ${item.netInr})">Mark paid (UPI sent)</button>
+                    <button class="btn btn-danger btn-sm" onclick="takeAction('${item.id}','reject')">Reject & refund crowns</button>
+                  </div>
+                ` : `
+                  <div class="small text-secondary">
+                    Reviewed by: ${escapeHtml(item.reviewedBy || "-")}<br>
+                    ${item.reviewedAt ? "On: " + new Date(item.reviewedAt).toLocaleString() : ""}
+                    ${item.adminNote ? "<br>UPI note: " + escapeHtml(item.adminNote) : ""}
+                    ${item.rejectionReason ? "<br>Reason: " + escapeHtml(item.rejectionReason) : ""}
+                  </div>
+                `}
+              </div>
+            </div>
           </div>
         </div>
       `).join("");
     }
 
-    async function takeAction(kycId, action) {
+    async function takeAction(requestId, action, netInr) {
       if (!enforceSession()) return;
       let reason = "";
+      let adminNote = "";
       if (action === "reject") {
-        reason = prompt("Enter rejection reason:");
+        reason = prompt("Rejection reason (crowns will be refunded to creator wallet):");
         if (!reason || !reason.trim()) {
           alert("Rejection reason is required.");
           return;
         }
+      } else {
+        const ok = confirm("Did you send " + rs(netInr) + " via UPI from your phone?\n\nClick OK only after payment is done.");
+        if (!ok) return;
+        adminNote = prompt("Optional: UPI transaction reference / note:") || "";
       }
-      const res = await fetch(API_BASE + "/v1/admin/kyc/action", {
+      const res = await fetch(API_BASE + "/v1/admin/withdraw/action", {
         method: "PUT",
         headers: authHeaders(),
-        body: JSON.stringify({ kycId, action, reason }),
+        body: JSON.stringify({ requestId, action, reason, adminNote }),
       });
       const json = await parseJsonResponse(res);
       if (!res.ok || json.statusCode !== 200) {
