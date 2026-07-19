@@ -3,10 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dtalkz — Your opinion matters</title>
-  <meta name="description" content="Dtalkz is the live debate and discussion platform where you go live, get heard, earn Crowns, and build your community. Download free on Google Play.">
-  <meta name="keywords" content="Dtalkz, debate, discussion, live debate, Crowns, India, Google Play">
-  <meta name="theme-color" content="#0a0a0a">
+  <title>Dtalkz — The eSports of Opinions</title>
+  <meta name="description" content="Dtalkz is the eSports of Opinions — live audio & video opinion contests where audiences vote, send Crowns, and decide winners. Download free on Google Play.">
+  <meta name="keywords" content="Dtalkz, debate, live debate, opinion contests, Crowns, community, Google Play">
+  <meta name="theme-color" content="#0A0A0A">
+  <link rel="canonical" href="https://dtalkz.com/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dtalkz.com/">
+  <meta property="og:title" content="Dtalkz — The eSports of Opinions">
+  <meta property="og:description" content="Live opinion contests. Audience votes. Crowns. Real outcomes. Download Dtalkz on Google Play.">
+  <meta property="og:image" content="https://dtalkz.com/assets/img/promo/live.png">
+  <meta property="og:site_name" content="Dtalkz">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Dtalkz — The eSports of Opinions">
+  <meta name="twitter:description" content="Live opinion contests. Audience votes. Crowns. Real outcomes.">
+  <meta name="twitter:image" content="https://dtalkz.com/assets/img/promo/live.png">
 
   <link rel="icon" href="assets/img/logo_dtalkz.png">
   <link rel="apple-touch-icon" href="assets/img/logo_dtalkz.png">
@@ -16,28 +29,50 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="assets/css/site.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "MobileApplication",
+    "name": "Dtalkz",
+    "operatingSystem": "Android",
+    "applicationCategory": "SocialNetworkingApplication",
+    "description": "The eSports of Opinions — live audio and video opinion contests with voting, Crowns, and real outcomes.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "INR"
+    },
+    "downloadUrl": "https://play.google.com/store/apps/details?id=com.dtalkz.preDtalkz",
+    "url": "https://dtalkz.com/"
+  }
+  </script>
 </head>
 <body>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+  <canvas id="particles" class="particles" aria-hidden="true"></canvas>
+
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header" id="header">
     <div class="shell header-inner">
       <a class="brand" href="#hero" aria-label="Dtalkz home">
-        <img src="assets/img/logo_dtalkz.png" alt="Dtalkz" width="120" height="120">
+        <img src="assets/img/logo_dtalkz.png" alt="Dtalkz" width="140" height="140">
       </a>
 
       <nav class="nav" id="nav" aria-label="Primary">
-        <a href="#hero">Home</a>
+        <a href="#why">Why</a>
+        <a href="#features">Features</a>
+        <a href="#showcase">Product</a>
         <a href="#how">How it works</a>
-        <a href="#about">About</a>
         <a href="#download">Download</a>
-        <a href="#contact">Contact</a>
       </nav>
 
-      <a class="btn btn-play header-play"
+      <a class="btn btn-gold header-cta magnetic"
          href="https://play.google.com/store/apps/details?id=com.dtalkz.preDtalkz"
          target="_blank" rel="noopener noreferrer">
-        Get on Play Store
+        Get the app
       </a>
 
       <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="nav" aria-label="Open menu">
@@ -47,166 +82,280 @@
   </header>
 
   <main id="main">
+    <!-- 1. Hero -->
     <section class="hero" id="hero">
-      <div class="shell hero-inner">
-        <img class="hero-logo reveal" data-reveal src="assets/img/logo_dtalkz.png" alt="Dtalkz" width="220" height="220">
-        <h1 class="reveal" data-reveal data-delay="1">Your opinion deserves an audience.</h1>
-        <p class="hero-lead reveal" data-reveal data-delay="2">
-          Go live. Debate. Get voted. Earn. The stage where thoughts turn into conversations — and conversations into rewards.
-        </p>
-        <div class="hero-actions reveal" data-reveal data-delay="3">
-          <a class="btn btn-play-lg pulse"
-             href="https://play.google.com/store/apps/details?id=com.dtalkz.preDtalkz"
-             target="_blank" rel="noopener noreferrer">
-            <img src="assets/img/google-play-badge.svg" alt="Get it on Google Play" width="200" height="60">
-          </a>
-          <a class="btn btn-ghost" href="#how">See how it works</a>
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow hero-in">Dtalkz</p>
+          <h1 class="hero-in">
+            The eSports<br>
+            <span class="gold-text">of Opinions</span>
+          </h1>
+          <p class="hero-lead hero-in">
+            Live audio &amp; video opinion contests where audiences vote, send Crowns, and decide winners — not endless scrolling.
+          </p>
+          <div class="hero-actions hero-in">
+            <a class="btn btn-gold btn-lg magnetic"
+               href="https://play.google.com/store/apps/details?id=com.dtalkz.preDtalkz"
+               target="_blank" rel="noopener noreferrer">
+              Download on Google Play
+            </a>
+            <a class="btn btn-ghost btn-lg"
+               href="https://youtube.com/shorts/PrnhFQLHzy4?si=hidECOyvMeL1i-jx"
+               target="_blank" rel="noopener noreferrer">Watch Demo</a>
+          </div>
+          <p class="hero-note hero-in">Free on Android · Available on Google Play</p>
         </div>
-        <p class="hero-note reveal" data-reveal data-delay="4">Free on Android · Available now on Google Play</p>
+
+        <div class="hero-visual hero-in" aria-hidden="false">
+          <div class="phone-glow"></div>
+          <img class="hero-phone float-y"
+               src="assets/img/promo/live.png"
+               alt="Dtalkz live debate contest — Debate Live. Change Minds."
+               width="576" height="1024"
+               fetchpriority="high">
+        </div>
       </div>
     </section>
 
-    <section class="features" id="story" aria-label="What you can do">
-      <div class="shell features-grid">
-        <article class="feature reveal" data-reveal>
-          <h2>Invite people who think like you</h2>
-          <p>Create debate and discussion contests around topics you care about. Match with people who share your interests.</p>
-        </article>
-        <article class="feature reveal" data-reveal data-delay="1">
-          <h2>Express yourself. Get heard. Earn.</h2>
-          <p>An audience that votes, sends Crowns, and helps winners earn recognition and real rewards.</p>
-        </article>
-        <article class="feature reveal" data-reveal data-delay="2">
-          <h2>A stage for voices that feel unheard</h2>
-          <p>Timed, live, and built for people who want more than a comment thread.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="how" id="how">
+    <!-- 2. Why Dtalkz -->
+    <section class="why" id="why">
       <div class="shell">
-        <header class="section-head reveal" data-reveal>
-          <p class="eyebrow">How it works</p>
-          <h2>From idea to applause in four moves.</h2>
-          <p>Anyone can host. Anyone can watch. The community decides who wins.</p>
+        <header class="section-head reveal">
+          <p class="eyebrow">Why Dtalkz</p>
+          <h2>Social media scrolls.<br><span class="gold-text">Dtalkz competes.</span></h2>
+          <p>Same opinions. Completely different arena.</p>
         </header>
 
-        <ol class="steps">
-          <li class="reveal" data-reveal>
-            <span class="step-num">01</span>
-            <h3>Create a contest</h3>
-            <p>Pick debate or discussion, set the topic, invite or open the floor.</p>
+        <div class="compare">
+          <article class="compare-card compare-old reveal">
+            <h3>Traditional Social Media</h3>
+            <ul>
+              <li>Passive scrolling</li>
+              <li>Comment chaos</li>
+              <li>Algorithm driven</li>
+              <li>Limited recognition</li>
+            </ul>
+          </article>
+
+          <div class="compare-arrow reveal" aria-hidden="true">
+            <span></span>
+          </div>
+
+          <article class="compare-card compare-new reveal">
+            <h3>Dtalkz</h3>
+            <ul>
+              <li>Active participation</li>
+              <li>Opinion experiences</li>
+              <li>Community driven</li>
+              <li>Recognition through engagement</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Features -->
+    <section class="features" id="features">
+      <div class="shell">
+        <header class="section-head reveal">
+          <p class="eyebrow">Features</p>
+          <h2>Built for creators,<br>audiences &amp; communities.</h2>
+        </header>
+
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-icon" aria-hidden="true">01</span>
+            <h3>Live Opinion Experiences</h3>
+            <p>Host audio &amp; video contests with real-time energy — not muted threads.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon" aria-hidden="true">02</span>
+            <h3>Audience Participation</h3>
+            <p>Invite friends, fill the stage, and let the room decide who wins.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon" aria-hidden="true">03</span>
+            <h3>Virtual Crowns</h3>
+            <p>Boost support with Crowns. Engagement has weight — and reward.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon" aria-hidden="true">04</span>
+            <h3>Creator Growth</h3>
+            <p>Build presence through contests, outcomes, and loyal supporters.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon" aria-hidden="true">05</span>
+            <h3>Communities</h3>
+            <p>Join interest squads — debate, post, and contest with your people.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon" aria-hidden="true">06</span>
+            <h3>Recognition</h3>
+            <p>Every contest ends with a clear winner, votes, and outcome.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Product Showcase -->
+    <section class="showcase" id="showcase">
+      <div class="shell">
+        <header class="section-head reveal">
+          <p class="eyebrow">Product</p>
+          <h2>See Dtalkz in action.</h2>
+          <p>Real product. Real contests. Real outcomes.</p>
+        </header>
+      </div>
+
+      <div class="showcase-track" id="showcaseTrack" tabindex="0" aria-label="Product showcase. Scroll horizontally.">
+        <figure class="showcase-item">
+          <img src="assets/img/promo/create.png" alt="Create Contests Your Way — customize topics, format, schedule & challenges" width="576" height="1024" loading="lazy">
+          <figcaption>
+            <strong>Create Contests Your Way</strong>
+            <span>Topics, format, schedule &amp; challenges</span>
+          </figcaption>
+        </figure>
+        <figure class="showcase-item">
+          <img src="assets/img/promo/invite.png" alt="Invite Friends. Fill the Stage." width="576" height="1024" loading="lazy">
+          <figcaption>
+            <strong>Invite Friends. Fill the Stage.</strong>
+            <span>Search followers &amp; send invites</span>
+          </figcaption>
+        </figure>
+        <figure class="showcase-item">
+          <img src="assets/img/promo/live.png" alt="Debate Live. Change Minds." width="576" height="1024" loading="lazy">
+          <figcaption>
+            <strong>Debate Live. Change Minds.</strong>
+            <span>Audio &amp; video contests with real outcomes</span>
+          </figcaption>
+        </figure>
+        <figure class="showcase-item">
+          <img src="assets/img/promo/vote.png" alt="Vote. Crown. Decide." width="576" height="1024" loading="lazy">
+          <figcaption>
+            <strong>Vote. Crown. Decide.</strong>
+            <span>Vote for your favorite to win</span>
+          </figcaption>
+        </figure>
+        <figure class="showcase-item">
+          <img src="assets/img/promo/results.png" alt="Opinions Meet Outcome" width="576" height="1024" loading="lazy">
+          <figcaption>
+            <strong>Opinions Meet Outcome</strong>
+            <span>See the final winner after every vote</span>
+          </figcaption>
+        </figure>
+        <figure class="showcase-item">
+          <img src="assets/img/promo/community.png" alt="Your Topic. Your Squad." width="576" height="1024" loading="lazy">
+          <figcaption>
+            <strong>Your Topic. Your Squad.</strong>
+            <span>Join communities — debate, post &amp; contest</span>
+          </figcaption>
+        </figure>
+        <figure class="showcase-item">
+          <img src="assets/img/promo/contests.png" alt="All Contests. One Place." width="576" height="1024" loading="lazy">
+          <figcaption>
+            <strong>All Contests. One Place.</strong>
+            <span>Track invited, joined &amp; created contests</span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 5. How it works -->
+    <section class="how" id="how">
+      <div class="shell">
+        <header class="section-head reveal">
+          <p class="eyebrow">How it works</p>
+          <h2>Four moves.<br>One stage.</h2>
+        </header>
+
+        <ol class="timeline">
+          <li class="timeline-item reveal">
+            <span class="timeline-num">01</span>
+            <div>
+              <h3>Create</h3>
+              <p>Set your topic, format, rules, and schedule. Contests your way.</p>
+            </div>
           </li>
-          <li class="reveal" data-reveal data-delay="1">
-            <span class="step-num">02</span>
-            <h3>Go live &amp; engage</h3>
-            <p>Present your view live while the audience watches and reacts.</p>
+          <li class="timeline-item reveal">
+            <span class="timeline-num">02</span>
+            <div>
+              <h3>Go Live</h3>
+              <p>Step into audio or video. Present your view. Own the moment.</p>
+            </div>
           </li>
-          <li class="reveal" data-reveal data-delay="2">
-            <span class="step-num">03</span>
-            <h3>Vote &amp; send Crowns</h3>
-            <p>Viewers back the side they believe in — votes and Crowns shape the outcome.</p>
+          <li class="timeline-item reveal">
+            <span class="timeline-num">03</span>
+            <div>
+              <h3>Community Participates</h3>
+              <p>Friends join, audiences vote, Crowns flow — the room decides.</p>
+            </div>
           </li>
-          <li class="reveal" data-reveal data-delay="3">
-            <span class="step-num">04</span>
-            <h3>Win, earn, grow</h3>
-            <p>Winners take recognition and rewards. Creators build community.</p>
+          <li class="timeline-item reveal">
+            <span class="timeline-num">04</span>
+            <div>
+              <h3>Recognition</h3>
+              <p>Clear winners. Real outcomes. Reputation that compounds.</p>
+            </div>
           </li>
         </ol>
       </div>
     </section>
 
-    <section class="about" id="about">
-      <div class="shell about-inner reveal" data-reveal>
-        <p class="eyebrow">About us</p>
-        <h2>Built for the urge to be heard.</h2>
-        <p>
-          Every day, a sea of issues reaches billions of people. It sparks thoughts — but modern life often leaves those thoughts trapped alone.
-        </p>
-        <p>
-          We built Dtalkz so people can vent, deliberate, and be heard on a stage designed for expression — with rewards that benefit creators and the community.
-        </p>
-        <p class="about-tag">Debate · Discussion · Live · Crowns · Community</p>
-      </div>
-    </section>
-
+    <!-- 6. Download -->
     <section class="download" id="download">
-      <div class="shell download-panel reveal" data-reveal>
-        <img class="download-logo" src="assets/img/logo_dtalkz.png" alt="Dtalkz" width="140" height="140">
-        <p class="eyebrow">Get the app</p>
-        <h2>Download Dtalkz on Google Play</h2>
-        <p>Join live debates, support creators with Crowns, and turn your opinion into a stage.</p>
-        <ul class="download-points">
-          <li>Live audio &amp; video debates</li>
-          <li>Audience voting &amp; Crowns</li>
-          <li>Create contests in minutes</li>
-          <li>Earn and withdraw rewards</li>
-        </ul>
-        <a class="btn btn-play-lg pulse"
-           href="https://play.google.com/store/apps/details?id=com.dtalkz.preDtalkz"
-           target="_blank" rel="noopener noreferrer">
-          <img src="assets/img/google-play-badge.svg" alt="Get it on Google Play" width="220" height="66">
-        </a>
-      </div>
-    </section>
-
-    <section class="contact" id="contact">
-      <div class="shell contact-inner reveal" data-reveal>
-        <p class="eyebrow">Contact</p>
-        <h2>Talk to us</h2>
-        <p>Questions, feedback, or partnership ideas — drop a line.</p>
-        <a class="contact-mail" href="mailto:dtalkzinfo@gmail.com">dtalkzinfo@gmail.com</a>
-        <a class="social" href="https://www.instagram.com/dtalkz.app/" target="_blank" rel="noopener noreferrer">Instagram @dtalkz.app</a>
+      <div class="shell">
+        <div class="download-panel reveal">
+          <img class="download-logo" src="assets/img/logo_dtalkz.png" alt="Dtalkz" width="160" height="160">
+          <p class="eyebrow">Get the app</p>
+          <h2>Step onto<br>the stage.</h2>
+          <p>Join live opinion contests. Vote. Send Crowns. Build your community.</p>
+          <a class="btn btn-gold btn-lg magnetic"
+             href="https://play.google.com/store/apps/details?id=com.dtalkz.preDtalkz"
+             target="_blank" rel="noopener noreferrer">
+            Download on Google Play
+          </a>
+          <a class="play-badge"
+             href="https://play.google.com/store/apps/details?id=com.dtalkz.preDtalkz"
+             target="_blank" rel="noopener noreferrer">
+            <img src="assets/img/google-play-badge.svg" alt="Get it on Google Play" width="200" height="60">
+          </a>
+        </div>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="shell footer-grid">
-      <div class="footer-brand">
-        <a class="brand" href="#hero">
+  <footer class="site-footer" id="contact">
+    <div class="shell footer-inner">
+      <div class="footer-top">
+        <a class="brand" href="#hero" aria-label="Dtalkz home">
           <img src="assets/img/logo_dtalkz.png" alt="Dtalkz" width="120" height="120">
         </a>
-        <p>The live stage for debate, discussion, and rewards.</p>
-        <a class="btn btn-play"
-           href="https://play.google.com/store/apps/details?id=com.dtalkz.preDtalkz"
-           target="_blank" rel="noopener noreferrer">
-          Get on Play Store
-        </a>
+        <p class="footer-tag">The eSports of Opinions</p>
       </div>
 
-      <div>
-        <h3>Explore</h3>
-        <ul>
-          <li><a href="#hero">Home</a></li>
-          <li><a href="#how">How it works</a></li>
-          <li><a href="#about">About</a></li>
-          <li><a href="#download">Download</a></li>
-          <li><a href="#contact">Contact</a></li>
-        </ul>
-      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="./privacy-policy.html">Privacy</a>
+        <a href="./delete-account-request.html">Delete Account</a>
+        <a href="mailto:dtalkzinfo@gmail.com">Support</a>
+        <a href="mailto:dtalkzinfo@gmail.com">Contact</a>
+        <a href="https://www.instagram.com/dtalkz.app/" target="_blank" rel="noopener noreferrer">Instagram</a>
+        <a href="https://www.linkedin.com/company/dtalkz" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      </nav>
 
-      <div>
-        <h3>Legal &amp; account</h3>
-        <ul>
-          <li><a href="./privacy-policy.html">Privacy Policy</a></li>
-          <li><a href="./delete-account-request.html">Delete Account</a></li>
-        </ul>
+      <div class="footer-meta">
+        <p>&copy; <span id="year"></span> Dtalkz. All rights reserved.</p>
+        <p class="footer-admin">
+          <a href="./admin-kyc.html">Admin KYC</a>
+          ·
+          <a href="./admin-withdraw.html">Admin Withdraw</a>
+        </p>
       </div>
-
-      <div>
-        <h3>Admin</h3>
-        <ul>
-          <li><a href="./admin-kyc.html">KYC Portal</a></li>
-          <li><a href="./admin-withdraw.html">Withdrawal Portal</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="shell footer-bottom">
-      <p>&copy; <span id="year"></span> Dtalkz. All rights reserved.</p>
     </div>
   </footer>
 
-  <script src="assets/js/site.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" defer></script>
+  <script src="assets/js/site.js" defer></script>
 </body>
 </html>
