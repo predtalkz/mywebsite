@@ -121,177 +121,251 @@
     });
   }
 
-  /* Showcase cinematic carousel */
+  /* Showcase — 3D coverflow, smooth hand drag */
   function initShowcase() {
-    var stage = document.getElementById("showcaseStage");
-    var track = document.getElementById("showcaseTrack");
-    var prev = document.getElementById("showcasePrev");
-    var next = document.getElementById("showcaseNext");
-    var progress = document.getElementById("showcaseProgress");
-    var countEl = document.getElementById("showcaseCount");
-    if (!stage || !track) return;
+    var deck = document.getElementById("showcaseDeck");
+    var titleEl = document.getElementById("showcaseTitle");
+    var subEl = document.getElementById("showcaseSub");
+    var dotsEl = document.getElementById("showcaseDots");
+    if (!deck) return;
 
-    var items = Array.prototype.slice.call(track.querySelectorAll(".showcase-item"));
-    if (!items.length) return;
+    var cards = Array.prototype.slice.call(deck.querySelectorAll(".showcase-card"));
+    if (!cards.length) return;
 
-    var index = 0;
-    var x = 0;
+    // avoid duplicate dots if init runs twice
+    if (dotsEl) dotsEl.innerHTML = "";
+
+    var n = cards.length;
+    var pos = 0;
+    var target = 0;
     var dragging = false;
+    var axisLock = null; // null | "x" | "y"
+    var pointerId = null;
     var startX = 0;
-    var startTranslate = 0;
-    var autoTimer = null;
-    var gap = 21.6; // 1.35rem approx fallback
+    var startY = 0;
+    var startPos = 0;
+    var lastX = 0;
+    var lastT = 0;
+    var velocity = 0;
+    var raf = 0;
+    var activeIndex = -1;
 
-    function pad(n) {
-      return n < 10 ? "0" + n : String(n);
-    }
-
-    function measure() {
-      var styles = window.getComputedStyle(track);
-      gap = parseFloat(styles.columnGap || styles.gap) || 21.6;
-    }
-
-    function cardStep() {
-      return items[0].offsetWidth + gap;
-    }
-
-    function centerOffset() {
-      var viewport = track.parentElement;
-      return (viewport.clientWidth - items[0].offsetWidth) / 2;
-    }
-
-    function targetXFor(i) {
-      return centerOffset() - i * cardStep();
-    }
-
-    function setClasses() {
-      items.forEach(function (item, i) {
-        item.classList.toggle("is-active", i === index);
-        item.classList.toggle("is-near", Math.abs(i - index) === 1);
+    cards.forEach(function (_, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-label", "Go to slide " + (i + 1));
+      b.addEventListener("click", function () {
+        target = i;
+        velocity = 0;
+        kick();
       });
-      if (progress) {
-        progress.style.width = ((index + 1) / items.length) * 100 + "%";
-      }
-      if (countEl) {
-        countEl.textContent = pad(index + 1) + " / " + pad(items.length);
-      }
+      if (dotsEl) dotsEl.appendChild(b);
+    });
+    var dots = dotsEl ? Array.prototype.slice.call(dotsEl.querySelectorAll("button")) : [];
+
+    function clampPos(v) {
+      return Math.max(0, Math.min(n - 1, v));
     }
 
-    function applyX(val, animate) {
-      x = val;
-      if (typeof gsap === "undefined" || reduceMotion || animate === false) {
-        if (typeof gsap !== "undefined") {
-          gsap.set(track, { x: val });
-        } else {
-          track.style.transform = "translate3d(" + val + "px,0,0)";
+    function render(p) {
+      var active = Math.round(clampPos(p));
+      var mobile = window.innerWidth < 560;
+
+      cards.forEach(function (card, i) {
+        var offset = i - p;
+        var abs = Math.abs(offset);
+        var side = offset === 0 ? 0 : (offset < 0 ? -1 : 1);
+        var spaced = Math.min(abs, 3.2);
+
+        // side cards: soft blur behind | front card: razor sharp
+        var x = side * spaced * (mobile ? 92 : 128);
+        var z = 150 - spaced * 88;
+        var rot = side * spaced * (mobile ? 12 : 15);
+        var scale = spaced === 0 ? 1 : 1 - spaced * 0.065;
+        var blur = spaced === 0 ? 0 : Math.min(2.2, spaced * 0.9);
+        var opacity = spaced === 0 ? 1 : Math.max(0.28, 0.9 - spaced * 0.18);
+        var zIndex = Math.round(40 - abs * 8);
+
+        if (abs > 3.2) {
+          opacity = 0;
+          blur = 0;
+          zIndex = 0;
         }
-        return;
-      }
-      gsap.to(track, {
-        x: val,
-        duration: 0.75,
-        ease: "power3.out",
-        overwrite: true,
-        onUpdate: function () {
-          x = Number(gsap.getProperty(track, "x")) || val;
+
+        // front card: avoid subpixel 3D mush — lock to clean transform
+        if (spaced < 0.02) {
+          card.style.transform = "translate(-50%, -50%) translateZ(160px) scale(1)";
+          card.style.filter = "none";
+          card.style.opacity = "1";
+          card.style.zIndex = "50";
+          card.classList.add("is-front");
+          card.style.pointerEvents = "none";
+          return;
         }
+
+        card.style.transform =
+          "translate(-50%, -50%) translate3d(" + x.toFixed(1) + "px,0," + z.toFixed(1) + "px) rotateY(" + (-rot).toFixed(2) + "deg) scale(" + scale.toFixed(3) + ")";
+        card.style.filter = "blur(" + blur.toFixed(2) + "px)";
+        card.style.opacity = String(opacity.toFixed(3));
+        card.style.zIndex = String(zIndex);
+        card.classList.toggle("is-front", i === active);
+        card.style.pointerEvents = "none";
       });
-    }
 
-    function goTo(i, animate) {
-      index = (i + items.length) % items.length;
-      setClasses();
-      applyX(targetXFor(index), animate !== false);
-    }
-
-    function nextSlide() { goTo(index + 1, true); }
-    function prevSlide() { goTo(index - 1, true); }
-
-    function stopAuto() {
-      if (autoTimer) {
-        clearInterval(autoTimer);
-        autoTimer = null;
+      // whole deck handles drag — cards never steal pointer
+      if (active !== activeIndex) {
+        activeIndex = active;
+        var front = cards[active];
+        if (front) {
+          if (titleEl) titleEl.textContent = front.getAttribute("data-title") || "";
+          if (subEl) subEl.innerHTML = front.getAttribute("data-sub") || "";
+        }
+        dots.forEach(function (d, i) {
+          d.classList.toggle("is-on", i === active);
+        });
       }
     }
 
-    function startAuto() {
-      stopAuto();
-      if (reduceMotion) return;
-      autoTimer = setInterval(nextSlide, 4200);
+    function tick() {
+      raf = 0;
+
+      if (!dragging) {
+        pos += (target - pos) * 0.22;
+        if (Math.abs(target - pos) < 0.002) {
+          pos = target;
+          render(pos);
+          return;
+        }
+      } else {
+        pos = target;
+      }
+
+      render(pos);
+      raf = requestAnimationFrame(tick);
+    }
+
+    function kick() {
+      if (!raf) raf = requestAnimationFrame(tick);
+    }
+
+    function goToIndex(i) {
+      target = clampPos(i);
+      velocity = 0;
+      kick();
     }
 
     function onPointerDown(e) {
+      if (e.button != null && e.button !== 0) return;
       dragging = true;
-      track.classList.add("is-dragging");
-      startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
-      startTranslate = x;
-      stopAuto();
-      if (typeof gsap !== "undefined") gsap.killTweensOf(track);
+      axisLock = null;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      startPos = Math.round(pos);
+      pos = startPos;
+      target = startPos;
+      lastX = e.clientX;
+      lastT = performance.now();
+      velocity = 0;
     }
 
     function onPointerMove(e) {
-      if (!dragging) return;
-      var clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
-      var dx = clientX - startX;
-      applyX(startTranslate + dx, false);
-      if (e.cancelable && e.type === "touchmove") e.preventDefault();
+      if (!dragging || (pointerId != null && e.pointerId !== pointerId)) return;
+
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
+
+      // decide axis once — vertical page scroll must not move cards
+      if (!axisLock) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        if (Math.abs(dy) > Math.abs(dx)) {
+          axisLock = "y";
+          dragging = false;
+          pointerId = null;
+          deck.classList.remove("is-dragging");
+          goToIndex(startPos);
+          return;
+        }
+        axisLock = "x";
+        deck.classList.add("is-dragging");
+        try { deck.setPointerCapture(e.pointerId); } catch (err) {}
+        kick();
+      }
+
+      if (axisLock !== "x") return;
+
+      var step = Math.max(140, deck.clientWidth * 0.28);
+      var progress = Math.max(-1, Math.min(1, -dx / step));
+      target = clampPos(startPos + progress);
+
+      var now = performance.now();
+      var dt = Math.max(8, now - lastT);
+      velocity = (lastX - e.clientX) / dt;
+      lastX = e.clientX;
+      lastT = now;
+      kick();
     }
 
     function onPointerUp(e) {
-      if (!dragging) return;
+      if (pointerId != null && e.pointerId !== pointerId) return;
+      var wasHorizontal = axisLock === "x";
       dragging = false;
-      track.classList.remove("is-dragging");
-      var clientX = (e.changedTouches && e.changedTouches[0].clientX) || e.clientX || startX;
-      var dx = clientX - startX;
-      var threshold = Math.min(80, cardStep() * 0.22);
-      if (dx < -threshold) goTo(index + 1, true);
-      else if (dx > threshold) goTo(index - 1, true);
-      else goTo(index, true);
-      startAuto();
+      pointerId = null;
+      deck.classList.remove("is-dragging");
+
+      if (!wasHorizontal) {
+        axisLock = null;
+        return;
+      }
+      axisLock = null;
+
+      var dx = (e.clientX != null ? e.clientX : lastX) - startX;
+      var step = Math.max(140, deck.clientWidth * 0.28);
+      var progress = -dx / step;
+      var flick = velocity > 0.35 ? 1 : (velocity < -0.35 ? -1 : 0);
+
+      if (flick === 1 || progress > 0.28) {
+        goToIndex(startPos + 1);
+      } else if (flick === -1 || progress < -0.28) {
+        goToIndex(startPos - 1);
+      } else {
+        goToIndex(startPos);
+      }
     }
 
-    measure();
-    goTo(0, false);
+    deck.addEventListener("pointerdown", onPointerDown);
+    deck.addEventListener("pointermove", onPointerMove);
+    deck.addEventListener("pointerup", onPointerUp);
+    deck.addEventListener("pointercancel", onPointerUp);
+    deck.addEventListener("lostpointercapture", onPointerUp);
 
-    if (next) next.addEventListener("click", function () { stopAuto(); nextSlide(); startAuto(); });
-    if (prev) prev.addEventListener("click", function () { stopAuto(); prevSlide(); startAuto(); });
+    var wheelLock = false;
+    deck.addEventListener("wheel", function (e) {
+      // only horizontal trackpad/mouse wheel — ignore vertical page scroll
+      if (Math.abs(e.deltaX) < 6 || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      if (wheelLock || dragging) return;
+      wheelLock = true;
+      goToIndex(Math.round(pos) + (e.deltaX > 0 ? 1 : -1));
+      setTimeout(function () { wheelLock = false; }, 420);
+    }, { passive: false });
 
-    track.addEventListener("mousedown", onPointerDown);
-    window.addEventListener("mousemove", onPointerMove);
-    window.addEventListener("mouseup", onPointerUp);
-    track.addEventListener("touchstart", onPointerDown, { passive: true });
-    track.addEventListener("touchmove", onPointerMove, { passive: false });
-    track.addEventListener("touchend", onPointerUp);
-
-    track.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowRight") { e.preventDefault(); stopAuto(); nextSlide(); startAuto(); }
-      if (e.key === "ArrowLeft") { e.preventDefault(); stopAuto(); prevSlide(); startAuto(); }
+    deck.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goToIndex(Math.round(pos) + 1);
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goToIndex(Math.round(pos) - 1);
+      }
     });
 
-    items.forEach(function (item, i) {
-      item.addEventListener("click", function () {
-        if (Math.abs(x - startTranslate) > 8) return;
-        if (i !== index) {
-          stopAuto();
-          goTo(i, true);
-          startAuto();
-        }
-      });
-    });
-
-    stage.addEventListener("mouseenter", stopAuto);
-    stage.addEventListener("mouseleave", startAuto);
-
-    var resizeTimer;
     window.addEventListener("resize", function () {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () {
-        measure();
-        goTo(index, false);
-      }, 120);
+      render(pos);
     }, { passive: true });
 
-    startAuto();
+    render(0);
   }
 
   /* GSAP */
