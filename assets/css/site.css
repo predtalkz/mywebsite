@@ -260,7 +260,7 @@ p:last-child { margin-bottom: 0; }
   color: var(--muted);
   font-size: 1.12rem;
   max-width: 36ch;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .hero-actions {
@@ -366,7 +366,7 @@ p:last-child { margin-bottom: 0; }
   color: var(--muted);
   padding: 0.7rem 0;
   border-top: 1px solid var(--border);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .compare-old h3 { color: var(--muted); }

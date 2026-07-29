@@ -49,12 +49,15 @@
   window.addEventListener("scroll", setActiveNav, { passive: true });
   setActiveNav();
 
-  /* Soft particles */
-  var canvas = document.getElementById("particles");
-  if (canvas && !reduceMotion && canvas.getContext) {
+  /* Soft particles — start after first paint (idle) */
+  function initParticles() {
+    var canvas = document.getElementById("particles");
+    if (!canvas || reduceMotion || !canvas.getContext) return;
+
     var ctx = canvas.getContext("2d");
     var particles = [];
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var running = false;
 
     function resize() {
       canvas.width = window.innerWidth * dpr;
@@ -66,20 +69,21 @@
 
     function spawn() {
       particles = [];
-      var count = Math.min(36, Math.floor(window.innerWidth / 40));
+      var count = Math.min(22, Math.floor(window.innerWidth / 55));
       for (var i = 0; i < count; i++) {
         particles.push({
           x: Math.random() * window.innerWidth,
           y: Math.random() * window.innerHeight,
-          r: Math.random() * 1.6 + 0.4,
-          a: Math.random() * 0.35 + 0.1,
-          vx: (Math.random() - 0.5) * 0.25,
-          vy: (Math.random() - 0.5) * 0.25
+          r: Math.random() * 1.5 + 0.4,
+          a: Math.random() * 0.3 + 0.08,
+          vx: (Math.random() - 0.5) * 0.22,
+          vy: (Math.random() - 0.5) * 0.22
         });
       }
     }
 
     function tick() {
+      if (!running) return;
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       for (var i = 0; i < particles.length; i++) {
         var p = particles[i];
@@ -99,11 +103,20 @@
 
     resize();
     spawn();
+    running = true;
     tick();
     window.addEventListener("resize", function () {
       resize();
       spawn();
     }, { passive: true });
+  }
+
+  function whenIdle(fn, timeout) {
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(fn, { timeout: timeout || 1800 });
+    } else {
+      setTimeout(fn, timeout || 900);
+    }
   }
 
   /* Magnetic buttons */
@@ -368,20 +381,22 @@
     render(0);
   }
 
-  /* GSAP */
-  function initGsap() {
+  /* GSAP — lazy load after first paint (does not block initial load) */
+  function revealFallback() {
+    document.querySelectorAll(".hero-in, .reveal, .feature-card").forEach(function (el) {
+      el.style.opacity = "1";
+      el.style.transform = "none";
+    });
+  }
+
+  function initGsapAnimations() {
     if (typeof gsap === "undefined") {
-      document.querySelectorAll(".hero-in, .reveal").forEach(function (el) {
-        el.style.opacity = "1";
-        el.style.transform = "none";
-      });
-      initShowcase();
+      revealFallback();
       return;
     }
 
     if (reduceMotion) {
-      gsap.set(".hero-in, .reveal", { opacity: 1, y: 0, clearProps: "all" });
-      initShowcase();
+      gsap.set(".hero-in, .reveal, .feature-card", { opacity: 1, y: 0, clearProps: "transform" });
       return;
     }
 
@@ -393,7 +408,7 @@
       duration: 0.9,
       stagger: 0.12,
       ease: "power3.out",
-      delay: 0.1
+      delay: 0.05
     });
 
     gsap.utils.toArray(".reveal").forEach(function (el) {
@@ -442,16 +457,59 @@
         }
       });
     }
+  }
 
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = src;
+      s.async = true;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  function loadGsapLazy() {
+    if (reduceMotion) {
+      revealFallback();
+      return;
+    }
+    var base = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/";
+    loadScript(base + "gsap.min.js")
+      .then(function () { return loadScript(base + "ScrollTrigger.min.js"); })
+      .then(function () { initGsapAnimations(); })
+      .catch(function () { revealFallback(); });
+  }
+
+  function boot() {
     initShowcase();
+
+    // quick hero visibility if GSAP arrives late
+    setTimeout(function () {
+      if (typeof gsap === "undefined") {
+        document.querySelectorAll(".hero-in").forEach(function (el) {
+          el.style.opacity = "1";
+          el.style.transform = "none";
+        });
+      }
+    }, 700);
+
+    // safety: never leave content hidden if CDN fails / slow
+    setTimeout(function () {
+      if (typeof gsap === "undefined") revealFallback();
+    }, 2200);
+
+    whenIdle(function () {
+      loadGsapLazy();
+      initParticles();
+    }, 1200);
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () {
-      setTimeout(initGsap, 0);
-    });
+    document.addEventListener("DOMContentLoaded", boot);
   } else {
-    setTimeout(initGsap, 0);
+    boot();
   }
 
   window.addEventListener("load", function () {
