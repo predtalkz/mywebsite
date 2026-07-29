@@ -208,56 +208,75 @@
         </header>
       </div>
 
-      <div class="showcase-track" id="showcaseTrack" tabindex="0" aria-label="Product showcase. Scroll horizontally.">
-        <figure class="showcase-item">
-          <img src="assets/img/promo/create.png" alt="Create Contests Your Way — customize topics, format, schedule & challenges" width="576" height="1024" loading="lazy">
-          <figcaption>
-            <strong>Create Contests Your Way</strong>
-            <span>Topics, format, schedule &amp; challenges</span>
-          </figcaption>
-        </figure>
-        <figure class="showcase-item">
-          <img src="assets/img/promo/invite.png" alt="Invite Friends. Fill the Stage." width="576" height="1024" loading="lazy">
-          <figcaption>
-            <strong>Invite Friends. Fill the Stage.</strong>
-            <span>Search followers &amp; send invites</span>
-          </figcaption>
-        </figure>
-        <figure class="showcase-item">
-          <img src="assets/img/promo/live.png" alt="Debate Live. Change Minds." width="576" height="1024" loading="lazy">
-          <figcaption>
-            <strong>Debate Live. Change Minds.</strong>
-            <span>Audio &amp; video contests with real outcomes</span>
-          </figcaption>
-        </figure>
-        <figure class="showcase-item">
-          <img src="assets/img/promo/vote.png" alt="Vote. Crown. Decide." width="576" height="1024" loading="lazy">
-          <figcaption>
-            <strong>Vote. Crown. Decide.</strong>
-            <span>Vote for your favorite to win</span>
-          </figcaption>
-        </figure>
-        <figure class="showcase-item">
-          <img src="assets/img/promo/results.png" alt="Opinions Meet Outcome" width="576" height="1024" loading="lazy">
-          <figcaption>
-            <strong>Opinions Meet Outcome</strong>
-            <span>See the final winner after every vote</span>
-          </figcaption>
-        </figure>
-        <figure class="showcase-item">
-          <img src="assets/img/promo/community.png" alt="Your Topic. Your Squad." width="576" height="1024" loading="lazy">
-          <figcaption>
-            <strong>Your Topic. Your Squad.</strong>
-            <span>Join communities — debate, post &amp; contest</span>
-          </figcaption>
-        </figure>
-        <figure class="showcase-item">
-          <img src="assets/img/promo/contests.png" alt="All Contests. One Place." width="576" height="1024" loading="lazy">
-          <figcaption>
-            <strong>All Contests. One Place.</strong>
-            <span>Track invited, joined &amp; created contests</span>
-          </figcaption>
-        </figure>
+      <div class="showcase-stage" id="showcaseStage">
+        <div class="showcase-viewport">
+          <div class="showcase-track" id="showcaseTrack" tabindex="0" role="list" aria-label="Product showcase carousel">
+            <figure class="showcase-item is-active" role="listitem" data-index="0">
+              <img src="assets/img/promo/create.png" alt="Create Contests Your Way — customize topics, format, schedule & challenges" width="576" height="1024" loading="lazy">
+              <figcaption>
+                <strong>Create Contests Your Way</strong>
+                <span>Topics, format, schedule &amp; challenges</span>
+              </figcaption>
+            </figure>
+            <figure class="showcase-item" role="listitem" data-index="1">
+              <img src="assets/img/promo/invite.png" alt="Invite Friends. Fill the Stage." width="576" height="1024" loading="lazy">
+              <figcaption>
+                <strong>Invite Friends. Fill the Stage.</strong>
+                <span>Search followers &amp; send invites</span>
+              </figcaption>
+            </figure>
+            <figure class="showcase-item" role="listitem" data-index="2">
+              <img src="assets/img/promo/live.png" alt="Debate Live. Change Minds." width="576" height="1024" loading="lazy">
+              <figcaption>
+                <strong>Debate Live. Change Minds.</strong>
+                <span>Audio &amp; video contests with real outcomes</span>
+              </figcaption>
+            </figure>
+            <figure class="showcase-item" role="listitem" data-index="3">
+              <img src="assets/img/promo/vote.png" alt="Vote. Crown. Decide." width="576" height="1024" loading="lazy">
+              <figcaption>
+                <strong>Vote. Crown. Decide.</strong>
+                <span>Vote for your favorite to win</span>
+              </figcaption>
+            </figure>
+            <figure class="showcase-item" role="listitem" data-index="4">
+              <img src="assets/img/promo/results.png" alt="Opinions Meet Outcome" width="576" height="1024" loading="lazy">
+              <figcaption>
+                <strong>Opinions Meet Outcome</strong>
+                <span>See the final winner after every vote</span>
+              </figcaption>
+            </figure>
+            <figure class="showcase-item" role="listitem" data-index="5">
+              <img src="assets/img/promo/community.png" alt="Your Topic. Your Squad." width="576" height="1024" loading="lazy">
+              <figcaption>
+                <strong>Your Topic. Your Squad.</strong>
+                <span>Join communities — debate, post &amp; contest</span>
+              </figcaption>
+            </figure>
+            <figure class="showcase-item" role="listitem" data-index="6">
+              <img src="assets/img/promo/contests.png" alt="All Contests. One Place." width="576" height="1024" loading="lazy">
+              <figcaption>
+                <strong>All Contests. One Place.</strong>
+                <span>Track invited, joined &amp; created contests</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="showcase-controls shell">
+          <div class="showcase-progress" aria-hidden="true">
+            <span class="showcase-progress-bar" id="showcaseProgress"></span>
+          </div>
+          <div class="showcase-nav">
+            <button type="button" class="showcase-btn" id="showcasePrev" aria-label="Previous slide">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <p class="showcase-count" id="showcaseCount" aria-live="polite">01 / 07</p>
+            <button type="button" class="showcase-btn" id="showcaseNext" aria-label="Next slide">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
