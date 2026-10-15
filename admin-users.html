@@ -16,6 +16,7 @@
     .table thead th { color: #8b949e; font-weight: 600; border-color: #30363d; }
     .table td { border-color: #30363d; vertical-align: middle; }
     .version { font-weight: 700; color: #ffc451; }
+    #userLoader .spinner-border { color: #ffc451; }
   </style>
 </head>
 <body>
@@ -68,7 +69,10 @@
     const listEl = document.getElementById("list");
     const panel = document.getElementById("panel");
     const loginCard = document.getElementById("loginCard");
-    let currentPage = 1;
+    let currentPage = 0;
+    let totalPages = 0;
+    let loadingUsers = false;
+    let loadSeq = 0;
 
     function authHeaders() {
       return {
@@ -82,8 +86,11 @@
       localStorage.removeItem(EXPIRE_KEY);
       panel.classList.add("d-none");
       loginCard.classList.remove("d-none");
+      loadSeq += 1;
+      loadingUsers = false;
+      currentPage = 0;
+      totalPages = 0;
       listEl.innerHTML = "";
-      currentPage = 1;
     }
 
     function enforceSession() {
@@ -122,7 +129,7 @@
       localStorage.setItem(EXPIRE_KEY, String(Date.now() + (60 * 60 * 1000)));
       loginCard.classList.add("d-none");
       panel.classList.remove("d-none");
-      await loadUsers(1);
+      await loadUsers(true);
     }
 
     function escapeHtml(s) {
@@ -142,54 +149,22 @@
       return "—";
     }
 
-    function goToPage(page) {
-      loadUsers(page);
+    function userRow(item) {
+      return `
+        <tr>
+          <td>${escapeHtml(item.userName || "—")}</td>
+          <td>${escapeHtml(item.phone || "—")}</td>
+          <td class="version">${escapeHtml(versionLabel(item))}</td>
+          <td>${item.appVersionSeenAt ? escapeHtml(new Date(item.appVersionSeenAt).toLocaleString()) : "—"}</td>
+        </tr>
+      `;
     }
 
-    async function loadUsers(page) {
-      if (!enforceSession()) return;
-      if (page != null) currentPage = page;
-      const res = await fetch(
-        API_BASE + "/v1/admin/users?page=" + encodeURIComponent(currentPage),
-        { method: "GET", headers: authHeaders() }
-      );
-      if (res.status === 401 || res.status === 403) {
-        alert("Session expired. Please login again.");
-        logout();
-        return;
-      }
-      const json = await parseJsonResponse(res);
-      if (!res.ok || json.statusCode !== 200) {
-        alert((json && (json.data || json.error)) || "Failed to load users");
-        return;
-      }
-      const payload = Array.isArray(json.data)
-        ? { users: json.data, page: 1, limit: json.data.length || 20, total: json.data.length, totalPages: json.data.length ? 1 : 0 }
-        : (json.data || {});
-      const rows = payload.users || [];
-      const total = Number(payload.total) || 0;
-      const pageNum = Number(payload.page) || 1;
-      const totalPages = Number(payload.totalPages) || 0;
-      const limit = Number(payload.limit) || 20;
-      currentPage = pageNum;
-      if (!total) {
-        listEl.innerHTML = "<div class='alert alert-dark'>No users found.</div>";
-        return;
-      }
-      const from = (pageNum - 1) * limit + 1;
-      const to = Math.min(pageNum * limit, total);
-      const prevDisabled = pageNum <= 1 ? "disabled" : "";
-      const nextDisabled = pageNum >= totalPages ? "disabled" : "";
+    function renderUserShell(total) {
+      const count = total ? escapeHtml(String(total)) + " users. " : "";
       listEl.innerHTML = `
         <div class="card p-3">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-            <div class="small muted">${from}–${to} of ${total}. Version shows after the user opens the app.</div>
-            <div class="d-flex align-items-center gap-2">
-              <button class="btn btn-outline-light btn-sm" ${prevDisabled} onclick="goToPage(${pageNum - 1})">Previous</button>
-              <span class="small muted">Page ${pageNum} of ${totalPages}</span>
-              <button class="btn btn-outline-light btn-sm" ${nextDisabled} onclick="goToPage(${pageNum + 1})">Next</button>
-            </div>
-          </div>
+          <div class="small muted mb-2">${count}Version shows after the user opens the app.</div>
           <div class="table-responsive">
             <table class="table table-sm mb-0">
               <thead>
@@ -200,26 +175,97 @@
                   <th>Last seen</th>
                 </tr>
               </thead>
-              <tbody>
-                ${rows.map((item) => `
-                  <tr>
-                    <td>${escapeHtml(item.userName || "—")}</td>
-                    <td>${escapeHtml(item.phone || "—")}</td>
-                    <td class="version">${escapeHtml(versionLabel(item))}</td>
-                    <td>${item.appVersionSeenAt ? escapeHtml(new Date(item.appVersionSeenAt).toLocaleString()) : "—"}</td>
-                  </tr>
-                `).join("")}
-              </tbody>
+              <tbody id="userRows"></tbody>
             </table>
+          </div>
+          <div id="userLoader" class="text-center py-3 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" aria-label="Loading"></div>
           </div>
         </div>
       `;
     }
 
+    function setUserLoader(show) {
+      const loader = document.getElementById("userLoader");
+      if (!loader) return;
+      loader.classList.toggle("d-none", !show);
+    }
+
+    function nearBottom() {
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const view = window.innerHeight || 0;
+      const height = document.documentElement.scrollHeight || 0;
+      return scrollY + view >= height - 240;
+    }
+
+    async function loadUsers(reset) {
+      if (!enforceSession()) return;
+      if (reset) {
+        loadSeq += 1;
+        loadingUsers = false;
+        currentPage = 0;
+        totalPages = 0;
+        renderUserShell(0);
+      }
+      if (loadingUsers) return;
+      if (!reset && totalPages && currentPage >= totalPages) return;
+
+      const seq = loadSeq;
+      const page = reset ? 1 : currentPage + 1;
+      loadingUsers = true;
+      setUserLoader(true);
+      try {
+        const res = await fetch(
+          API_BASE + "/v1/admin/users?page=" + encodeURIComponent(page),
+          { method: "GET", headers: authHeaders() }
+        );
+        if (seq !== loadSeq) return;
+        if (res.status === 401 || res.status === 403) {
+          alert("Session expired. Please login again.");
+          logout();
+          return;
+        }
+        const json = await parseJsonResponse(res);
+        if (seq !== loadSeq) return;
+        if (!res.ok || json.statusCode !== 200) {
+          alert((json && (json.data || json.error)) || "Failed to load users");
+          return;
+        }
+        const payload = Array.isArray(json.data)
+          ? { users: json.data, page: 1, limit: json.data.length || 20, total: json.data.length, totalPages: json.data.length ? 1 : 0 }
+          : (json.data || {});
+        const rows = payload.users || [];
+        const total = Number(payload.total) || 0;
+        const pageNum = Number(payload.page) || page;
+        totalPages = Number(payload.totalPages) || 0;
+        currentPage = pageNum;
+        if (!total) {
+          listEl.innerHTML = "<div class='alert alert-dark'>No users found.</div>";
+          return;
+        }
+        if (!document.getElementById("userRows")) renderUserShell(total);
+        const countEl = listEl.querySelector(".small.muted");
+        if (countEl) countEl.textContent = total + " users. Version shows after the user opens the app.";
+        const body = document.getElementById("userRows");
+        if (body) body.insertAdjacentHTML("beforeend", rows.map(userRow).join(""));
+      } catch (err) {
+        if (seq !== loadSeq) return;
+        alert(err && err.message ? err.message : "Failed to load users");
+      } finally {
+        if (seq !== loadSeq) return;
+        loadingUsers = false;
+        setUserLoader(false);
+        if (currentPage < totalPages && nearBottom()) loadUsers(false);
+      }
+    }
+
     document.getElementById("loginBtn").addEventListener("click", adminLogin);
-    document.getElementById("refreshBtn").addEventListener("click", function () { loadUsers(); });
+    document.getElementById("refreshBtn").addEventListener("click", function () { loadUsers(true); });
     document.getElementById("logoutBtn").addEventListener("click", logout);
-    window.goToPage = goToPage;
+    window.addEventListener("scroll", function () {
+      if (panel.classList.contains("d-none")) return;
+      if (nearBottom()) loadUsers(false);
+    }, { passive: true });
 
     setInterval(() => {
       if (!enforceSession()) return;
@@ -231,7 +277,7 @@
     if (enforceSession()) {
       loginCard.classList.add("d-none");
       panel.classList.remove("d-none");
-      loadUsers();
+      loadUsers(true);
     }
   </script>
 </body>
