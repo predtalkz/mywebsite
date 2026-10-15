@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dtalkz Admin - Users</title>
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+  <script>
+    window.DTALKZ_API_BASE = "https://api.dtalkz.com";
+  </script>
+  <style>
+    body { background: #0d1117; color: #e6edf3; }
+    .card { background: #161b22; border: 1px solid #30363d; }
+    .muted { color: #8b949e; }
+    .table { --bs-table-bg: transparent; --bs-table-color: #e6edf3; }
+    .table thead th { color: #8b949e; font-weight: 600; border-color: #30363d; }
+    .table td { border-color: #30363d; vertical-align: middle; }
+    .version { font-weight: 700; color: #ffc451; }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <div>
+        <h3 class="mb-1">Dtalkz Admin — Users</h3>
+        <p class="small muted mb-0">Name, phone, and the app version last seen from the user's device.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="admin-kyc.html" class="btn btn-outline-secondary btn-sm">KYC Portal</a>
+        <a href="admin-withdraw.html" class="btn btn-outline-secondary btn-sm">Withdrawal Portal</a>
+      </div>
+    </div>
+
+    <div id="loginCard" class="card p-3 mb-4">
+      <h5 class="mb-3">Admin Login</h5>
+      <div class="row g-2">
+        <div class="col-md-4"><input id="username" class="form-control" placeholder="Username" /></div>
+        <div class="col-md-4"><input id="password" type="password" class="form-control" placeholder="Password" /></div>
+        <div class="col-md-4 d-grid"><button id="loginBtn" class="btn btn-warning">Login</button></div>
+      </div>
+      <small class="mt-2 text-secondary">Same credentials as KYC portal</small>
+    </div>
+
+    <div id="panel" class="d-none">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <button id="refreshBtn" class="btn btn-outline-light btn-sm">Refresh</button>
+        <button id="logoutBtn" class="btn btn-outline-danger btn-sm">Logout</button>
+      </div>
+      <div id="sessionNote" class="alert alert-secondary py-2">Session active (auto logout in 1 hour).</div>
+      <div id="list"></div>
+    </div>
+  </div>
+
+  <script>
+    function resolveApiBase() {
+      let base = (typeof window.DTALKZ_API_BASE === "string" && window.DTALKZ_API_BASE)
+        ? window.DTALKZ_API_BASE.trim().replace(/\/$/, "")
+        : "https://api.dtalkz.com";
+      if (window.location.protocol === "https:" && base.startsWith("http://")) {
+        base = "https://" + base.slice("http://".length);
+      }
+      return base;
+    }
+
+    const API_BASE = resolveApiBase();
+    const TOKEN_KEY = "dtalkz_admin_token";
+    const EXPIRE_KEY = "dtalkz_admin_expire_at";
+    const listEl = document.getElementById("list");
+    const panel = document.getElementById("panel");
+    const loginCard = document.getElementById("loginCard");
+
+    function authHeaders() {
+      return {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + (localStorage.getItem(TOKEN_KEY) || ""),
+      };
+    }
+
+    function logout() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(EXPIRE_KEY);
+      panel.classList.add("d-none");
+      loginCard.classList.remove("d-none");
+      listEl.innerHTML = "";
+    }
+
+    function enforceSession() {
+      const expireAt = Number(localStorage.getItem(EXPIRE_KEY) || 0);
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token || !expireAt || Date.now() >= expireAt) {
+        logout();
+        return false;
+      }
+      return true;
+    }
+
+    async function parseJsonResponse(res) {
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error("Server did not return JSON: " + text.slice(0, 120));
+      }
+    }
+
+    async function adminLogin() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const res = await fetch(API_BASE + "/v1/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await parseJsonResponse(res);
+      if (!res.ok || json.statusCode !== 200 || !json.data?.token) {
+        alert((json && json.data) || "Login failed");
+        return;
+      }
+      localStorage.setItem(TOKEN_KEY, json.data.token);
+      localStorage.setItem(EXPIRE_KEY, String(Date.now() + (60 * 60 * 1000)));
+      loginCard.classList.add("d-none");
+      panel.classList.remove("d-none");
+      await loadUsers();
+    }
+
+    function escapeHtml(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function versionLabel(item) {
+      const version = String(item.appVersion || "").trim();
+      const build = String(item.appBuild || "").trim();
+      if (version && build) return version + " (" + build + ")";
+      if (version) return version;
+      if (build) return build;
+      return "—";
+    }
+
+    async function loadUsers() {
+      if (!enforceSession()) return;
+      const res = await fetch(API_BASE + "/v1/admin/users", {
+        method: "GET",
+        headers: authHeaders(),
+      });
+      if (res.status === 401 || res.status === 403) {
+        alert("Session expired. Please login again.");
+        logout();
+        return;
+      }
+      const json = await parseJsonResponse(res);
+      if (!res.ok || json.statusCode !== 200) {
+        alert(json.data || json.error || "Failed to load users");
+        return;
+      }
+      const rows = json.data || [];
+      if (!rows.length) {
+        listEl.innerHTML = "<div class='alert alert-dark'>No users found.</div>";
+        return;
+      }
+      listEl.innerHTML = `
+        <div class="card p-3">
+          <div class="small muted mb-2">${rows.length} user(s). Version shows after the user opens the app.</div>
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>App version</th>
+                  <th>Last seen</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map((item) => `
+                  <tr>
+                    <td>${escapeHtml(item.userName || "—")}</td>
+                    <td>${escapeHtml(item.phone || "—")}</td>
+                    <td class="version">${escapeHtml(versionLabel(item))}</td>
+                    <td>${item.appVersionSeenAt ? escapeHtml(new Date(item.appVersionSeenAt).toLocaleString()) : "—"}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", adminLogin);
+    document.getElementById("refreshBtn").addEventListener("click", loadUsers);
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+
+    setInterval(() => {
+      if (!enforceSession()) return;
+      const expireAt = Number(localStorage.getItem(EXPIRE_KEY) || 0);
+      const minutesLeft = Math.max(0, Math.ceil((expireAt - Date.now()) / 60000));
+      document.getElementById("sessionNote").innerText = `Session active (${minutesLeft} minute(s) left, auto logout in 1 hour).`;
+    }, 15000);
+
+    if (enforceSession()) {
+      loginCard.classList.add("d-none");
+      panel.classList.remove("d-none");
+      loadUsers();
+    }
+  </script>
+</body>
+</html>
