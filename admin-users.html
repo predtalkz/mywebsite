@@ -44,7 +44,10 @@
 
     <div id="panel" class="d-none">
       <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <button id="refreshBtn" class="btn btn-outline-light btn-sm">Refresh</button>
+        <div class="d-flex align-items-center gap-2 flex-grow-1">
+          <input id="userSearch" class="form-control form-control-sm" placeholder="Search name" style="max-width: 260px;" />
+          <button id="refreshBtn" class="btn btn-outline-light btn-sm">Refresh</button>
+        </div>
         <button id="logoutBtn" class="btn btn-outline-danger btn-sm">Logout</button>
       </div>
       <div id="sessionNote" class="alert alert-secondary py-2">Session active (auto logout in 1 hour).</div>
@@ -73,6 +76,8 @@
     let totalPages = 0;
     let loadingUsers = false;
     let loadSeq = 0;
+    let searchQuery = "";
+    let searchTimer = null;
 
     function authHeaders() {
       return {
@@ -90,6 +95,10 @@
       loadingUsers = false;
       currentPage = 0;
       totalPages = 0;
+      searchQuery = "";
+      clearTimeout(searchTimer);
+      const searchEl = document.getElementById("userSearch");
+      if (searchEl) searchEl.value = "";
       listEl.innerHTML = "";
     }
 
@@ -143,7 +152,7 @@
     function versionLabel(item) {
       const version = String(item.appVersion || "").trim();
       const build = String(item.appBuild || "").trim();
-      if (version && build) return version + " (" + build + ")";
+      if (version && build) return version + "+" + build;
       if (version) return version;
       if (build) return build;
       return "—";
@@ -206,6 +215,7 @@
         currentPage = 0;
         totalPages = 0;
         renderUserShell(0);
+        window.scrollTo(0, 0);
       }
       if (loadingUsers) return;
       if (!reset && totalPages && currentPage >= totalPages) return;
@@ -215,8 +225,11 @@
       loadingUsers = true;
       setUserLoader(true);
       try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        if (searchQuery) params.set("q", searchQuery);
         const res = await fetch(
-          API_BASE + "/v1/admin/users?page=" + encodeURIComponent(page),
+          API_BASE + "/v1/admin/users?" + params.toString(),
           { method: "GET", headers: authHeaders() }
         );
         if (seq !== loadSeq) return;
@@ -262,6 +275,15 @@
     document.getElementById("loginBtn").addEventListener("click", adminLogin);
     document.getElementById("refreshBtn").addEventListener("click", function () { loadUsers(true); });
     document.getElementById("logoutBtn").addEventListener("click", logout);
+    document.getElementById("userSearch").addEventListener("input", function () {
+      const next = this.value.trim();
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        if (next === searchQuery) return;
+        searchQuery = next;
+        loadUsers(true);
+      }, 300);
+    });
     window.addEventListener("scroll", function () {
       if (panel.classList.contains("d-none")) return;
       if (nearBottom()) loadUsers(false);
