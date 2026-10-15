@@ -68,6 +68,7 @@
     const listEl = document.getElementById("list");
     const panel = document.getElementById("panel");
     const loginCard = document.getElementById("loginCard");
+    let currentPage = 1;
 
     function authHeaders() {
       return {
@@ -82,6 +83,7 @@
       panel.classList.add("d-none");
       loginCard.classList.remove("d-none");
       listEl.innerHTML = "";
+      currentPage = 1;
     }
 
     function enforceSession() {
@@ -120,7 +122,7 @@
       localStorage.setItem(EXPIRE_KEY, String(Date.now() + (60 * 60 * 1000)));
       loginCard.classList.add("d-none");
       panel.classList.remove("d-none");
-      await loadUsers();
+      await loadUsers(1);
     }
 
     function escapeHtml(s) {
@@ -140,12 +142,17 @@
       return "—";
     }
 
-    async function loadUsers() {
+    function goToPage(page) {
+      loadUsers(page);
+    }
+
+    async function loadUsers(page) {
       if (!enforceSession()) return;
-      const res = await fetch(API_BASE + "/v1/admin/users", {
-        method: "GET",
-        headers: authHeaders(),
-      });
+      if (page != null) currentPage = page;
+      const res = await fetch(
+        API_BASE + "/v1/admin/users?page=" + encodeURIComponent(currentPage),
+        { method: "GET", headers: authHeaders() }
+      );
       if (res.status === 401 || res.status === 403) {
         alert("Session expired. Please login again.");
         logout();
@@ -153,17 +160,36 @@
       }
       const json = await parseJsonResponse(res);
       if (!res.ok || json.statusCode !== 200) {
-        alert(json.data || json.error || "Failed to load users");
+        alert((json && (json.data || json.error)) || "Failed to load users");
         return;
       }
-      const rows = json.data || [];
-      if (!rows.length) {
+      const payload = Array.isArray(json.data)
+        ? { users: json.data, page: 1, limit: json.data.length || 20, total: json.data.length, totalPages: json.data.length ? 1 : 0 }
+        : (json.data || {});
+      const rows = payload.users || [];
+      const total = Number(payload.total) || 0;
+      const pageNum = Number(payload.page) || 1;
+      const totalPages = Number(payload.totalPages) || 0;
+      const limit = Number(payload.limit) || 20;
+      currentPage = pageNum;
+      if (!total) {
         listEl.innerHTML = "<div class='alert alert-dark'>No users found.</div>";
         return;
       }
+      const from = (pageNum - 1) * limit + 1;
+      const to = Math.min(pageNum * limit, total);
+      const prevDisabled = pageNum <= 1 ? "disabled" : "";
+      const nextDisabled = pageNum >= totalPages ? "disabled" : "";
       listEl.innerHTML = `
         <div class="card p-3">
-          <div class="small muted mb-2">${rows.length} user(s). Version shows after the user opens the app.</div>
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <div class="small muted">${from}–${to} of ${total}. Version shows after the user opens the app.</div>
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-outline-light btn-sm" ${prevDisabled} onclick="goToPage(${pageNum - 1})">Previous</button>
+              <span class="small muted">Page ${pageNum} of ${totalPages}</span>
+              <button class="btn btn-outline-light btn-sm" ${nextDisabled} onclick="goToPage(${pageNum + 1})">Next</button>
+            </div>
+          </div>
           <div class="table-responsive">
             <table class="table table-sm mb-0">
               <thead>
@@ -191,8 +217,9 @@
     }
 
     document.getElementById("loginBtn").addEventListener("click", adminLogin);
-    document.getElementById("refreshBtn").addEventListener("click", loadUsers);
+    document.getElementById("refreshBtn").addEventListener("click", function () { loadUsers(); });
     document.getElementById("logoutBtn").addEventListener("click", logout);
+    window.goToPage = goToPage;
 
     setInterval(() => {
       if (!enforceSession()) return;
